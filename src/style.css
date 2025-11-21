@@ -39,9 +39,6 @@
    --header-height: 6rem;
 
    --hero-image-radius: 48px;
-
-   --world-map-bg: url("/mapamundi-cenfolic.png");
-   --sedes-map-bg: url("/fondo-sedes.png");
 }
 
 @media (width <=768px) {
@@ -352,15 +349,13 @@ section {
    overflow: hidden;
 }
 
-.section-about-inner::before {
-   content: "";
+.section-about-bg {
    position: absolute;
    inset: -20%;
    opacity: 0.18;
-   background-image: var(--world-map-bg);
-   background-repeat: no-repeat;
-   background-position: center;
-   background-size: cover;
+   width: 100%;
+   height: 100%;
+   object-fit: cover;
    pointer-events: none;
 }
 
@@ -645,15 +640,13 @@ section {
    overflow: hidden;
 }
 
-.section-locations::before {
-   content: "";
+.section-locations-bg {
    position: absolute;
    inset: 0;
    opacity: 0.03;
-   background-image: var(--sedes-map-bg);
-   background-repeat: no-repeat;
-   background-size: cover;
-   background-position: center;
+   width: 100%;
+   height: 100%;
+   object-fit: cover;
    pointer-events: none;
 }
 
@@ -774,6 +767,8 @@ section {
 
 .footer-social-list a {
    color: var(--color-primary);
+   padding: 0.25rem 0;
+   display: inline-block;
 }
 
 .footer-social-list a:hover,
