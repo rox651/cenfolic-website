@@ -1,15 +1,17 @@
 ---
+import { Image } from 'astro:assets';
+import logo from '../assets/cenfolic-logo.png';
 ---
 
 <footer id="contacto" class="site-footer">
   <div class="footer-inner">
     <div class="footer-brand">
-      <img
-        src="/cenfolic-logo.png"
+      <Image
+        src={logo}
         alt="Logo Iglesias CENFOLIC"
         class="footer-logo-main"
-        width="797"
-        height="239"
+        width={797}
+        height={239}
       />
     </div>
 

@@ -1,17 +1,19 @@
 ---
+import { Image } from 'astro:assets';
 import Hero from "./sections/Hero.astro";
+import logo from '../assets/cenfolic-logo.png';
 ---
 
 <header class="site-header">
   <div class="header-inner">
     <a href="#inicio" class="brand" aria-label="Ir al inicio de Iglesias CENFOLIC">
-      <img
-        src="/cenfolic-logo.png"
+      <Image
+        src={logo}
         alt="Logo Iglesias CENFOLIC"
         class="brand-logo"
         loading="eager"
-        width="797"
-        height="239"
+        width={797}
+        height={239}
       />
     </a>
     <button

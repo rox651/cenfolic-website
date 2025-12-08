@@ -1,4 +1,6 @@
 ---
+import { Image } from 'astro:assets';
+import estrategiaImage from '../../assets/Estrategia.png';
 ---
 
 <section
@@ -42,14 +44,14 @@
         <p>Educación y administración responsable de los recursos.</p>
       </article>
       <div class="strategies-figure" aria-hidden="true">
-        <img
-          src="/Estrategia.png"
+        <Image
+          src={estrategiaImage}
           alt="Estrategias de Iglesias CENFOLIC"
           class="strategies-figure-image"
           fetchpriority="low"
           loading="lazy"
-          width="800"
-          height="754"
+          width={800}
+          height={754}
         />
       </div>
     </div>

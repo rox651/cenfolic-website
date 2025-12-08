@@ -1,17 +1,19 @@
 ---
+import { Image } from 'astro:assets';
+import mapamundi from '../../assets/mapamundi-cenfolic.webp';
 ---
 
 <section id="somos" class="section section-about" aria-labelledby="somos-title">
   <div class="section-inner section-about-inner">
-    <img
-      src="/mapamundi-cenfolic.webp"
+    <Image
+      src={mapamundi}
       alt=""
       class="section-about-bg"
       loading="eager"
       role="presentation"
       aria-hidden="true"
-      width="1600"
-      height="706"
+      width={1600}
+      height={706}
     />
     <div class="about-intro">
       <h2 id="somos-title">SOMOS</h2>
