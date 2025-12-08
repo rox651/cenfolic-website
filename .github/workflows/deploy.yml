@@ -35,6 +35,19 @@ jobs:
         env:
           OPEN_AI_KEY: ${{ secrets.OPEN_AI_KEY }}
 
+      - name: Copy audio files to dist
+        run: |
+          if [ -d "public/audio" ]; then
+            echo "Copiando archivos de audio de public/audio a dist/audio..."
+            mkdir -p dist/audio
+            cp -r public/audio/* dist/audio/ 2>/dev/null || true
+            echo "✓ Archivos de audio copiados"
+            find dist/audio -type f -name "*.mp3" | head -10
+            echo "Total de archivos MP3 en dist: $(find dist/audio -type f -name "*.mp3" | wc -l)"
+          else
+            echo "⚠️  Directorio public/audio NO existe - no hay archivos de audio para copiar"
+          fi
+
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
