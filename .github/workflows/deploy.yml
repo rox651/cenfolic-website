@@ -24,6 +24,33 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Add known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Download existing audio files from Hostinger
+        run: |
+          echo "Descargando archivos de audio existentes de Hostinger..."
+          mkdir -p public/audio
+          rsync -avz -e "ssh -p ${{ secrets.SSH_PORT }}" \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/domains/cenfolic.com/public_html/audio/ \
+            public/audio/ 2>/dev/null || echo "No hay archivos de audio existentes o error al descargar"
+          
+          if [ -d "public/audio" ] && [ "$(ls -A public/audio 2>/dev/null)" ]; then
+            echo "✓ Archivos de audio descargados:"
+            find public/audio -type f -name "*.mp3" | head -10
+            echo "Total de archivos MP3 descargados: $(find public/audio -type f -name "*.mp3" | wc -l)"
+            echo "Total de archivos hash descargados: $(find public/audio -type f -name "*.hash" | wc -l)"
+          else
+            echo "⚠️  No se encontraron archivos de audio existentes"
+          fi
+
       - name: Build project
         run: |
           if [ -z "$OPEN_AI_KEY" ]; then
@@ -47,16 +74,6 @@ jobs:
           else
             echo "⚠️  Directorio public/audio NO existe - no hay archivos de audio para copiar"
           fi
-
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_KEY }}
-
-      - name: Add known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Upload dist folder to Hostinger
         run: |
