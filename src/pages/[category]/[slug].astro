@@ -24,10 +24,13 @@ export async function getStaticPaths() {
       let audioUrl: string | null = null;
       try {
         const audioPath = `audio/${post.categorySlug}/${post.dateISO}.mp3`;
+        console.log(`[Build] Iniciando generación de audio para ${post.dateISO}...`);
         audioUrl = await generateAudioFile(fullText, audioPath);
         console.log(`✓ Audio generado para ${post.dateISO}: ${audioUrl}`);
       } catch (error) {
-        console.error(`✗ Error generando audio para ${post.dateISO}:`, error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`✗ Error generando audio para ${post.dateISO}:`, errorMessage);
+        console.error('Stack:', error instanceof Error ? error.stack : 'N/A');
         // Continuar sin audio si falla
       }
 

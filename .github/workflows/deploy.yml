@@ -25,7 +25,13 @@ jobs:
         run: bun install
 
       - name: Build project
-        run: bun run build
+        run: |
+          if [ -z "$OPEN_AI_KEY" ]; then
+            echo "⚠️  WARNING: OPEN_AI_KEY no está configurada"
+          else
+            echo "✓ OPEN_AI_KEY está configurada (longitud: ${#OPEN_AI_KEY})"
+          fi
+          bun run build
         env:
           OPEN_AI_KEY: ${{ secrets.OPEN_AI_KEY }}
 

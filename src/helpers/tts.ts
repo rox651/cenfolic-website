@@ -8,8 +8,12 @@ export async function generateAudioFile(
   const openAiKey = import.meta.env.OPEN_AI_KEY;
 
   if (!openAiKey) {
+    console.error('OPEN_AI_KEY no encontrada en import.meta.env');
+    console.error('Variables de entorno disponibles:', Object.keys(import.meta.env).filter(k => k.includes('OPEN')));
     throw new Error('OPEN_AI_KEY no está configurada');
   }
+
+  console.log(`Generando audio para: ${outputPath} (texto length: ${text.length})`);
 
   // Llamar a la API de OpenAI TTS
   const response = await fetch('https://api.openai.com/v1/audio/speech', {
