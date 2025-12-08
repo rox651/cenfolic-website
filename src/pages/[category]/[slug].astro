@@ -7,19 +7,42 @@ import type { WPPostWithCategory } from "../../helpers/wordpress";
 import { getAllPosts } from "../../helpers/wordpress";
 import Header from "../../components/Header.astro";
 import Footer from "../../components/Footer.astro";
+import AudioPlayer from "../../components/AudioPlayer.astro";
 import { extractTextFromHTML } from "../../helpers/html";
+import { generateAudioFile } from "../../helpers/tts";
 
 export async function getStaticPaths() {
   const posts = await getAllPosts();
 
-  return posts.map((post) => ({
-    params: { category: post.categorySlug, slug: post.dateISO },
-    props: { post },
-  }));
+  const paths = await Promise.all(
+    posts.map(async (post) => {
+      const title = extractTextFromHTML(post.title.rendered);
+      const contentText = extractTextFromHTML(post.content.rendered);
+      const fullText = `${title}\n\n${contentText}`;
+
+      // Generar audio durante el build
+      let audioUrl: string | null = null;
+      try {
+        const audioPath = `audio/${post.categorySlug}/${post.dateISO}.mp3`;
+        audioUrl = await generateAudioFile(fullText, audioPath);
+        console.log(`✓ Audio generado para ${post.dateISO}: ${audioUrl}`);
+      } catch (error) {
+        console.error(`✗ Error generando audio para ${post.dateISO}:`, error);
+        // Continuar sin audio si falla
+      }
+
+      return {
+        params: { category: post.categorySlug, slug: post.dateISO },
+        props: { post, audioUrl },
+      };
+    })
+  );
+
+  return paths;
 }
 
 
-const { post } = Astro.props as { post: WPPostWithCategory };
+const { post, audioUrl } = Astro.props as { post: WPPostWithCategory; audioUrl: string | null };
 
 
 
@@ -52,6 +75,8 @@ const contentProcessor = unified()
 const processedContent = contentProcessor
   .processSync(post.content.rendered)
   .toString();
+
+const contentText = extractTextFromHTML(post.content.rendered);
 ---
 
 
@@ -59,6 +84,7 @@ const processedContent = contentProcessor
   <Header />
   <main id="main-content" class="blog-post-container">
     <h1 class="blog-post-title">{title}</h1>
+    <AudioPlayer audioUrl={audioUrl} />
     <article class="blog-post" set:html={processedContent} />
   </main>
   <Footer />
@@ -171,6 +197,7 @@ const processedContent = contentProcessor
     text-align: center;
     text-transform: uppercase;
     letter-spacing: 0.18em;
+    font-family: var(--font-family-horizon);
   }
 
   @media (width <= 768px) {
