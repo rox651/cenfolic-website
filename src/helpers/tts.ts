@@ -1,5 +1,20 @@
-import { writeFile, mkdir } from 'fs/promises';
+import { writeFile, mkdir, readFile, access } from 'fs/promises';
 import { join } from 'path';
+import { createHash } from 'crypto';
+import { OpenAI } from 'openai';
+
+function calculateContentHash(text: string): string {
+  return createHash('sha256').update(text, 'utf8').digest('hex');
+}
+
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export async function generateAudioFile(
   text: string,
@@ -13,52 +28,65 @@ export async function generateAudioFile(
     throw new Error('OPEN_AI_KEY no está configurada');
   }
 
-  console.log(`Generando audio para: ${outputPath} (texto length: ${text.length})`);
-
-  const response = await fetch('https://api.openai.com/v1/audio/speech', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openAiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'tts-1',
-      input: text,
-      voice: 'alloy',
-      response_format: 'mp3',
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    let errorMessage = `Error al generar audio`;
-    
-    try {
-      const errorJson = JSON.parse(errorText);
-      if (errorJson.error?.message) {
-        errorMessage = `Error de OpenAI: ${errorJson.error.message}`;
-        
-        if (errorJson.error.message.includes('insufficient permissions') || 
-            errorJson.error.message.includes('Missing scopes')) {
-          errorMessage = `Error de permisos: Tu API key de OpenAI no tiene los permisos necesarios. Necesita el scope 'model.request'. Verifica la configuración de tu API key en https://platform.openai.com/api-keys`;
-        }
-      }
-    } catch {
-      errorMessage = `Error al generar audio: ${errorText}`;
-    }
-    
-    throw new Error(errorMessage);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
+  const contentHash = calculateContentHash(text);
+  const hashPath = outputPath.replace('.mp3', '.hash');
+  
   const dir = join(process.cwd(), 'public', outputPath.split('/').slice(0, -1).join('/'));
   await mkdir(dir, { recursive: true });
 
   const fullPath = join(process.cwd(), 'public', outputPath);
-  await writeFile(fullPath, buffer);
+  const hashFilePath = join(process.cwd(), 'public', hashPath);
 
-  return `/${outputPath}`;
+  let shouldGenerate = true;
+  const audioExists = await fileExists(fullPath);
+  const hashExists = await fileExists(hashFilePath);
+
+  if (audioExists && hashExists) {
+    try {
+      const savedHash = (await readFile(hashFilePath, 'utf-8')).trim();
+      
+      if (savedHash === contentHash) {
+        console.log(`✓ Audio ya existe y el contenido no ha cambiado: ${outputPath}`);
+        shouldGenerate = false;
+      } else {
+        console.log(`🔄 Contenido ha cambiado, regenerando audio: ${outputPath}`);
+        shouldGenerate = true;
+      }
+    } catch (error) {
+      console.log(`⚠️  Error leyendo hash, regenerando audio: ${outputPath}`);
+      shouldGenerate = true;
+    }
+  } else {
+    console.log(`📝 Generando nuevo audio: ${outputPath} (texto length: ${text.length})`);
+    shouldGenerate = true;
+  }
+
+  if (!shouldGenerate) {
+    return `/${outputPath}`;
+  }
+
+  const client = new OpenAI({
+    apiKey: openAiKey,
+  });
+
+  try {
+    const mp3 = await client.audio.speech.create({
+      model: 'gpt-4o-mini-tts',
+      voice: 'alloy',
+      input: text,
+      response_format: 'mp3',
+    });
+
+    const buffer = Buffer.from(await mp3.arrayBuffer());
+
+    await writeFile(fullPath, buffer);
+    await writeFile(hashFilePath, contentHash, 'utf-8');
+
+    return `/${outputPath}`;
+  } catch (error) {
+    console.error('Error generando audio con OpenAI SDK:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Error al generar audio: ${errorMessage}`);
+  }
 }
 
