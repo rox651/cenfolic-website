@@ -1,0 +1,56 @@
+---
+import {
+  importantDates,
+  isPastDate,
+  getFeaturedIndex,
+} from "../../helpers/importantDates";
+
+const currentDate = new Date();
+const sortedDates = [...importantDates].sort(
+  (a, b) => a.due.getTime() - b.due.getTime(),
+);
+
+const featuredIndex = getFeaturedIndex(sortedDates, currentDate);
+---
+
+<section
+  id="fechas"
+  class="section section-important-dates"
+  aria-labelledby="fechas-title"
+>
+  <div class="section-inner">
+    <header class="section-header-inline">
+      <h2 id="fechas-title">FECHAS IMPORTANTES</h2>
+      <p>
+        Aquí puedes encontrar las <span>fechas más próximas</span> de eventos de
+        nuestra Iglesia <span>CENFOLIC</span>.
+      </p>
+    </header>
+    <div class="important-dates-grid" aria-label="Eventos próximos">
+      {
+        sortedDates.map((date, index) => {
+          const isFeatured = index === featuredIndex;
+          const isPast =
+            isPastDate(date.due, currentDate) && !isFeatured;
+          const classes = [
+            "date-card",
+            isFeatured ? "date-card-featured" : "",
+            isPast ? "is-past" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+
+          return (
+            <article class={classes}>
+              <h3>{date.dueString}</h3>
+              <p class="date-name">{date.name}</p>
+              <p class="date-detail">{date.details}</p>
+            </article>
+          );
+        })
+      }
+    </div>
+  </div>
+</section>
+
+

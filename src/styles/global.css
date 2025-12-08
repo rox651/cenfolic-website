@@ -41,7 +41,7 @@
   --hero-image-radius: 48px;
 }
 
-@media (width <=768px) {
+@media (width <= 768px) {
   :root {
     --font-size-root: 15px;
     --font-size-h1: 2.5rem;
@@ -203,7 +203,7 @@ section {
   background-color: var(--color-primary);
 }
 
-.nav-toggle-bar+.nav-toggle-bar {
+.nav-toggle-bar + .nav-toggle-bar {
   margin-top: 5px;
 }
 
@@ -377,7 +377,7 @@ section {
   font-size: 0.95rem;
 }
 
-.about-description p+p {
+.about-description p + p {
   margin-top: 1.2rem;
 }
 
@@ -422,7 +422,7 @@ section {
 }
 
 .vision-pillars p {
-  grid-column: 1/-1;
+  grid-column: 1 / -1;
 }
 
 .pillar-card {
@@ -716,13 +716,11 @@ section {
   align-items: start;
 }
 
-
 .footer-brand {
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
 
 .footer-logo-main {
   max-width: 100%;
@@ -742,7 +740,7 @@ section {
   letter-spacing: 0.18em;
 }
 
-.footer-contact p+p {
+.footer-contact p + p {
   margin-top: 0.25rem;
 }
 
@@ -817,7 +815,7 @@ section {
   height: 20px;
 }
 
-.footer-contact-line+.footer-contact-line {
+.footer-contact-line + .footer-contact-line {
   margin-top: 0.15rem;
 }
 
@@ -837,7 +835,7 @@ section {
 
 /* Responsive */
 
-@media (width <=1024px) {
+@media (width <= 1024px) {
   .hero-content {
     gap: 2.25rem;
   }
@@ -926,7 +924,7 @@ section {
   }
 }
 
-@media (width <=768px) {
+@media (width <= 768px) {
   .hero-content {
     grid-template-columns: minmax(0, 1fr);
     padding-top: 0.75rem;
@@ -983,3 +981,5 @@ section {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+

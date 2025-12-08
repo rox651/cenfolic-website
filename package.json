@@ -1,15 +1,17 @@
 {
-  "name": "cenfolic-website",
-  "private": true,
-  "version": "0.0.0",
+  "name": "astro-website",
   "type": "module",
+  "version": "0.0.1",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^5.16.4"
   },
   "devDependencies": {
-    "typescript": "^5.2.2",
-    "vite": "^5.2.0"
+    "@astrojs/sitemap": "^3.6.0"
   }
 }

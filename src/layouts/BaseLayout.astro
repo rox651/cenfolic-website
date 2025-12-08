@@ -1,0 +1,102 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "Iglesias Cenfolic – Conocer, Formar, Impactar",
+  description = "Iglesias CENFOLIC: centro de formación de líderes cristianos comprometido con la Gran Comisión, para conocer, formar e impactar naciones con el Evangelio.",
+} = Astro.props as Props;
+
+const site =
+  Astro.site?.href ?? "https://www.cenfolic.com/";
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "Church",
+  name: "Iglesias CENFOLIC",
+  url: "https://www.cenfolic.com/",
+  logo: "https://www.cenfolic.com/cenfolic-logo.png",
+  image: "https://www.cenfolic.com/cenfolic-logo.png",
+  description:
+    "Centro de formación de líderes cristianos comprometido con la Gran Comisión: conocer, formar e impactar naciones con el Evangelio.",
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "Asturias 271",
+    addressLocality: "Las Condes",
+    addressRegion: "Región Metropolitana",
+    addressCountry: "CL",
+  },
+  email: "cenfolicnacional@cenlimi.com",
+  sameAs: [
+    "https://www.instagram.com/cenfolicmmontt",
+    "https://www.instagram.com/cenfolicmaipu_",
+    "https://www.instagram.com/cenfolicpenalolen",
+    "https://www.instagram.com/cenfolic.laserena",
+    "https://www.youtube.com/@Cenfolic",
+    "https://www.youtube.com/@CenfolicManuelMontt",
+  ],
+};
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="author" content="Iglesias Cenfolic" />
+    <meta name="robots" content="index,follow" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={site} />
+    <meta property="og:title" content={title} />
+    <meta
+      property="og:description"
+      content="Movimiento cristiano que forma líderes con visión y valores del Reino para impactar comunidades y naciones."
+    />
+    <meta property="og:image" content="/cenfolic-logo.png" />
+    <meta property="og:locale" content="es_CL" />
+    <meta property="og:site_name" content="Iglesias CENFOLIC" />
+
+    <meta name="theme-color" content="#082c5b" />
+
+    <link rel="canonical" href={site} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link
+      rel="icon"
+      href="/favicon-dark.svg"
+      type="image/svg+xml"
+      media="(prefers-color-scheme: dark)"
+    />
+    <link rel="alternate" hreflang="es-cl" href={site} />
+
+    <link
+      rel="preload"
+      as="image"
+      href="/Grupo-de-trabajo-cenfolic.webp"
+      fetchpriority="high"
+    />
+    <link
+      rel="preload"
+      as="image"
+      href="/mapamundi-cenfolic.webp"
+      fetchpriority="high"
+    />
+
+    <script type="application/ld+json">
+      {JSON.stringify(structuredData)}
+    </script>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
+
+
