@@ -50,125 +50,127 @@ const { audioUrl } = Astro.props;
 <audio id="audio-element" preload="none"></audio>
 
 <script>
-  interface AudioPlayerState {
-    isPlaying: boolean;
-    audioElement: HTMLAudioElement | null;
-  }
-
-  const state: AudioPlayerState = {
-    isPlaying: false,
-    audioElement: null,
-  };
-
-  const audioElement = document.getElementById('audio-element') as HTMLAudioElement;
-  const toggleButton = document.getElementById('audio-toggle');
-  const progressBar = document.getElementById('audio-progress-bar');
-  const progress = document.getElementById('audio-progress');
-  const currentTimeEl = document.getElementById('audio-current-time');
-  const durationEl = document.getElementById('audio-duration');
-  const statusEl = document.getElementById('audio-status');
-  const statusText = statusEl?.querySelector('.audio-player__status-text');
-
-  state.audioElement = audioElement;
-
-  // Configurar la URL del audio desde el atributo data
-  const audioPlayerEl = document.getElementById('audio-player');
-  if (!audioPlayerEl) {
-    // No hay reproductor disponible (audio no generado)
-    return;
-  }
-  
-  const audioUrlFromData = audioPlayerEl.getAttribute('data-audio-url');
-  if (audioUrlFromData && audioElement) {
-    audioElement.src = audioUrlFromData;
-  } else {
-    console.warn('Audio URL no encontrada');
-  }
-
-  function formatTime(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  }
-
-  function updateProgress() {
-    if (!audioElement || !progress || !currentTimeEl || !durationEl) return;
-
-    const currentTime = audioElement.currentTime;
-    const duration = audioElement.duration;
-
-    if (duration) {
-      const percentage = (currentTime / duration) * 100;
-      progress.style.width = `${percentage}%`;
-      currentTimeEl.textContent = formatTime(currentTime);
-      durationEl.textContent = formatTime(duration);
+  (function() {
+    interface AudioPlayerState {
+      isPlaying: boolean;
+      audioElement: HTMLAudioElement | null;
     }
-  }
 
-  function setStatus(message: string, isError = false) {
-    if (statusText) {
-      statusText.textContent = message;
-      statusEl?.classList.toggle('audio-player__status--error', isError);
+    const state: AudioPlayerState = {
+      isPlaying: false,
+      audioElement: null,
+    };
+
+    const audioElement = document.getElementById('audio-element') as HTMLAudioElement;
+    const toggleButton = document.getElementById('audio-toggle');
+    const progressBar = document.getElementById('audio-progress-bar');
+    const progress = document.getElementById('audio-progress');
+    const currentTimeEl = document.getElementById('audio-current-time');
+    const durationEl = document.getElementById('audio-duration');
+    const statusEl = document.getElementById('audio-status');
+    const statusText = statusEl?.querySelector('.audio-player__status-text');
+
+    // Configurar la URL del audio desde el atributo data
+    const audioPlayerEl = document.getElementById('audio-player');
+    if (!audioPlayerEl) {
+      // No hay reproductor disponible (audio no generado)
+      return;
     }
-  }
 
-  async function togglePlayback() {
-    if (!audioElement || !toggleButton) return;
-
-    if (state.isPlaying) {
-      audioElement.pause();
-      state.isPlaying = false;
-      toggleButton.setAttribute('aria-label', 'Reproducir audio');
-      toggleButton.querySelector('.audio-player__icon--play')?.setAttribute('style', 'display: block;');
-      toggleButton.querySelector('.audio-player__icon--pause')?.setAttribute('style', 'display: none;');
-      setStatus('Pausado');
-    } else {
-      await audioElement.play();
-      state.isPlaying = true;
-      toggleButton.setAttribute('aria-label', 'Pausar audio');
-      toggleButton.querySelector('.audio-player__icon--play')?.setAttribute('style', 'display: none;');
-      toggleButton.querySelector('.audio-player__icon--pause')?.setAttribute('style', 'display: block;');
-      setStatus('Reproduciendo...');
-    }
-  }
-
-  // Event listeners
-  toggleButton?.addEventListener('click', togglePlayback);
-
-  audioElement.addEventListener('timeupdate', updateProgress);
-  audioElement.addEventListener('loadedmetadata', () => {
-    if (durationEl && audioElement.duration) {
-      durationEl.textContent = formatTime(audioElement.duration);
-    }
-  });
-  audioElement.addEventListener('ended', () => {
-    state.isPlaying = false;
-    if (toggleButton) {
-      toggleButton.setAttribute('aria-label', 'Reproducir audio');
-      toggleButton.querySelector('.audio-player__icon--play')?.setAttribute('style', 'display: block;');
-      toggleButton.querySelector('.audio-player__icon--pause')?.setAttribute('style', 'display: none;');
-    }
-    setStatus('Reproducción completada');
-  });
-  audioElement.addEventListener('error', () => {
-    setStatus('Error al reproducir audio', true);
-    state.isPlaying = false;
-    if (toggleButton) {
-      toggleButton.setAttribute('aria-label', 'Reproducir audio');
-      toggleButton.querySelector('.audio-player__icon--play')?.setAttribute('style', 'display: block;');
-      toggleButton.querySelector('.audio-player__icon--pause')?.setAttribute('style', 'display: none;');
-    }
-  });
-
-  // Progress bar click to seek
-  progressBar?.addEventListener('click', (e) => {
-    if (!audioElement || !audioElement.duration) return;
+    state.audioElement = audioElement;
     
-    const rect = progressBar.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const percentage = x / rect.width;
-    audioElement.currentTime = percentage * audioElement.duration;
-  });
+    const audioUrlFromData = audioPlayerEl.getAttribute('data-audio-url');
+    if (audioUrlFromData && audioElement) {
+      audioElement.src = audioUrlFromData;
+    } else {
+      console.warn('Audio URL no encontrada');
+    }
+
+    function formatTime(seconds: number): string {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function updateProgress() {
+      if (!audioElement || !progress || !currentTimeEl || !durationEl) return;
+
+      const currentTime = audioElement.currentTime;
+      const duration = audioElement.duration;
+
+      if (duration) {
+        const percentage = (currentTime / duration) * 100;
+        progress.style.width = `${percentage}%`;
+        currentTimeEl.textContent = formatTime(currentTime);
+        durationEl.textContent = formatTime(duration);
+      }
+    }
+
+    function setStatus(message: string, isError = false) {
+      if (statusText) {
+        statusText.textContent = message;
+        statusEl?.classList.toggle('audio-player__status--error', isError);
+      }
+    }
+
+    async function togglePlayback() {
+      if (!audioElement || !toggleButton) return;
+
+      if (state.isPlaying) {
+        audioElement.pause();
+        state.isPlaying = false;
+        toggleButton.setAttribute('aria-label', 'Reproducir audio');
+        toggleButton.querySelector('.audio-player__icon--play')?.setAttribute('style', 'display: block;');
+        toggleButton.querySelector('.audio-player__icon--pause')?.setAttribute('style', 'display: none;');
+        setStatus('Pausado');
+      } else {
+        await audioElement.play();
+        state.isPlaying = true;
+        toggleButton.setAttribute('aria-label', 'Pausar audio');
+        toggleButton.querySelector('.audio-player__icon--play')?.setAttribute('style', 'display: none;');
+        toggleButton.querySelector('.audio-player__icon--pause')?.setAttribute('style', 'display: block;');
+        setStatus('Reproduciendo...');
+      }
+    }
+
+    // Event listeners
+    toggleButton?.addEventListener('click', togglePlayback);
+
+    audioElement.addEventListener('timeupdate', updateProgress);
+    audioElement.addEventListener('loadedmetadata', () => {
+      if (durationEl && audioElement.duration) {
+        durationEl.textContent = formatTime(audioElement.duration);
+      }
+    });
+    audioElement.addEventListener('ended', () => {
+      state.isPlaying = false;
+      if (toggleButton) {
+        toggleButton.setAttribute('aria-label', 'Reproducir audio');
+        toggleButton.querySelector('.audio-player__icon--play')?.setAttribute('style', 'display: block;');
+        toggleButton.querySelector('.audio-player__icon--pause')?.setAttribute('style', 'display: none;');
+      }
+      setStatus('Reproducción completada');
+    });
+    audioElement.addEventListener('error', () => {
+      setStatus('Error al reproducir audio', true);
+      state.isPlaying = false;
+      if (toggleButton) {
+        toggleButton.setAttribute('aria-label', 'Reproducir audio');
+        toggleButton.querySelector('.audio-player__icon--play')?.setAttribute('style', 'display: block;');
+        toggleButton.querySelector('.audio-player__icon--pause')?.setAttribute('style', 'display: none;');
+      }
+    });
+
+    // Progress bar click to seek
+    progressBar?.addEventListener('click', (e) => {
+      if (!audioElement || !audioElement.duration) return;
+      
+      const rect = progressBar.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percentage = x / rect.width;
+      audioElement.currentTime = percentage * audioElement.duration;
+    });
+  })();
 </script>
 
 <style>
