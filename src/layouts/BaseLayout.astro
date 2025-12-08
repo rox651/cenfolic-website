@@ -90,9 +90,10 @@ const structuredData = {
       fetchpriority="high"
     />
 
-    <script type="application/ld+json">
-      {JSON.stringify(structuredData)}
-    </script>
+    <script
+      type="application/ld+json"
+      set:html={JSON.stringify(structuredData).replace(/</g, "\\u003c")}
+    />
   </head>
   <body>
     <slot />
