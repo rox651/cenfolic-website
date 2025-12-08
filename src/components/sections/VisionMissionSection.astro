@@ -106,3 +106,128 @@
 </section>
 
 
+<style>
+  .section {
+    padding: var(--spacing-section-y) var(--spacing-page-x);
+  }
+
+  .section-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .section-vision-mission {
+    background: linear-gradient(
+      to bottom,
+      var(--color-surface) 0,
+      var(--color-surface-soft) 100%
+    );
+  }
+
+  .vision-header {
+    display: grid;
+    grid-template-columns: 0.4fr 1.6fr;
+    padding: 2.25rem 2.75rem 2.5rem;
+    border-radius: 24px 24px 0 0;
+    background-color: var(--color-surface);
+    box-shadow: 0 16px 40px rgba(10, 30, 60, 0.16);
+  }
+
+  .vision-text h2 {
+    font-size: var(--font-size-h2);
+    margin-bottom: 0.75rem;
+  }
+
+  .vision-pillars {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-grid-gap);
+    justify-items: stretch;
+  }
+
+  .vision-pillars p {
+    grid-column: 1 / -1;
+  }
+
+  .pillar-card {
+    background-color: var(--color-primary-soft);
+    border-radius: 18px;
+    padding: 1rem 0.5rem;
+    text-align: center;
+  }
+
+  .pillar-card h3 {
+    font-size: 1.05rem;
+    margin-bottom: 0.6rem;
+    color: var(--color-primary);
+  }
+
+  .pillar-card p {
+    font-size: var(--font-size-small);
+  }
+
+  .pillar-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-primary);
+  }
+
+  .pillar-icon svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .mission-block {
+    display: grid;
+    grid-template-columns: 0.4fr 1.6fr;
+    background-color: #eaf0ff;
+    border-radius: 0 0 24px 24px;
+    padding: 1.9rem 2.75rem 2.1rem;
+    margin-top: 0;
+  }
+
+  .mission-title-wrapper {
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .mission-title {
+    font-size: var(--font-size-h2);
+  }
+
+  .mission-text span {
+    font-weight: 700;
+  }
+
+  @media (width <= 1024px) {
+    .vision-header {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .mission-block {
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    }
+  }
+
+  @media (width <= 768px) {
+    .vision-header {
+      padding: 1.9rem 1.5rem 2.1rem;
+    }
+
+    .vision-pillars {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .mission-block {
+      grid-template-columns: minmax(0, 1fr);
+      row-gap: 1.1rem;
+      padding: 1.6rem 1.5rem 2rem;
+    }
+  }
+</style>
+

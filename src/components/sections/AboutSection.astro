@@ -49,3 +49,86 @@ import mapamundi from '../../assets/mapamundi-cenfolic.webp';
 </section>
 
 
+<style>
+  .section {
+    padding: var(--spacing-section-y) var(--spacing-page-x);
+  }
+
+  .section-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .section-about {
+    background: radial-gradient(
+      circle at 20% 0%,
+      #1b4b93 0,
+      #082141 40%,
+      #041227 100%
+    );
+    color: var(--color-text-soft);
+  }
+
+  .section-about-inner {
+    display: grid;
+    grid-template-columns: 0.8fr 1.4fr;
+    gap: 2.75rem;
+    position: relative;
+    padding: 3.2rem 3rem 3.4rem;
+    border-radius: 24px;
+    background-color: rgba(5, 24, 52, 0.96);
+    overflow: hidden;
+  }
+
+  .section-about-bg {
+    position: absolute;
+    inset: 0;
+    transform: scale(1.1);
+    opacity: 0.18;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+  }
+
+  .about-intro,
+  .about-description,
+  .about-verse {
+    position: relative;
+    z-index: 1;
+  }
+
+  .about-intro h2 {
+    font-size: var(--font-size-h2);
+    margin-bottom: 0.5rem;
+  }
+
+  .about-subtitle {
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+
+  .about-description p + p {
+    margin-top: 1.2rem;
+  }
+
+  .about-verse {
+    grid-column: 1 / -1;
+    margin-top: 1.75rem;
+    padding-top: 1.6rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.22);
+  }
+
+  .about-verse-ref {
+    margin-top: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+  }
+
+  @media (width <= 768px) {
+    .section-about-inner {
+      grid-template-columns: minmax(0, 1fr);
+      padding: 2.25rem 1.6rem 2.4rem;
+    }
+  }
+</style>

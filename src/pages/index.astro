@@ -2,22 +2,29 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
+import Hero from "../components/sections/Hero.astro";
 import AboutSection from "../components/sections/AboutSection.astro";
 import VisionMissionSection from "../components/sections/VisionMissionSection.astro";
 import StrategiesSection from "../components/sections/StrategiesSection.astro";
 import MovementsSection from "../components/sections/MovementsSection.astro";
 import ImportantDatesSection from "../components/sections/ImportantDatesSection.astro";
 import LocationsSection from "../components/sections/LocationsSection.astro";
+import BlogPostsSection from "../components/sections/BlogPostsSection.astro";
+import { getPosts } from "../helpers/wordpress";
+
+const latestPosts = await getPosts(3);
 ---
 
 <BaseLayout>
   <Header />
   <main id="main-content">
+    <Hero />
     <AboutSection />
     <VisionMissionSection />
     <StrategiesSection />
     <MovementsSection />
     <ImportantDatesSection />
+    <BlogPostsSection posts={latestPosts} />
     <LocationsSection />
   </main>
   <Footer />

@@ -1,0 +1,195 @@
+---
+import type { WPPostWithCategory } from "../../helpers/wordpress";
+import { extractTextFromHTML } from "../../helpers/html";
+
+interface Props {
+  posts: WPPostWithCategory[];
+}
+
+const { posts } = Astro.props as Props;
+---
+
+<section
+  id="blog"
+  class="section section-blog"
+  aria-labelledby="blog-title"
+>
+  <div class="section-inner">
+    <header class="section-header-centered">
+      <h2 id="blog-title">
+        Últimas <span>reflexiones</span>
+      </h2>
+      <p class="section-subtitle">
+        Devocionales y mensajes recientes para acompañar tu tiempo con Dios.
+      </p>
+    </header>
+
+    <div class="blog-grid">
+      {
+        posts.map((post) => {
+          const title = extractTextFromHTML(post.title.rendered);
+          const excerpt = extractTextFromHTML(post.excerpt?.rendered ?? "");
+
+          const href = `/${post.categorySlug}/${post.dateISO}`;
+
+          return (
+            <article class="blog-card">
+              <header class="blog-card__header">
+                <p class="blog-card__category">
+                  {post.categorySlug.replace(/-/g, " ")}
+                </p>
+                <h3 class="blog-card__title">
+                  <a href={href}>{title}</a>
+                </h3>
+              </header>
+
+              <p class="blog-card__excerpt">
+                {excerpt}
+              </p>
+
+              <footer class="blog-card__footer">
+                <time datetime={post.dateISO} class="blog-card__date">
+                  {post.dateText}
+                </time>
+                <a href={href} class="blog-card__link">
+                  Leer más
+                </a>
+              </footer>
+            </article>
+          );
+        })
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .section {
+    padding: var(--spacing-section-y) var(--spacing-page-x);
+  }
+
+  .section-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .section-header-centered {
+    text-align: center;
+    margin-bottom: 2.75rem;
+  }
+
+  .section-header-centered h2 span {
+    font-style: italic;
+  }
+
+  .section-subtitle {
+    margin-top: 0.75rem;
+    max-width: 32rem;
+    margin-inline: auto;
+    color: var(--color-primary);
+    font-size: var(--font-size-small);
+  }
+
+  .section-blog {
+    background: linear-gradient(
+      135deg,
+      var(--color-surface-soft),
+      #f7fbff
+    );
+  }
+
+  .blog-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-grid-gap);
+  }
+
+  .blog-card {
+    border-radius: 22px;
+    padding: 1.8rem 1.6rem 1.7rem;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border-strong);
+    box-shadow: 0 18px 45px rgba(6, 34, 80, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .blog-card__header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .blog-card__category {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--color-secondary);
+    font-weight: 700;
+  }
+
+  .blog-card__title {
+    font-size: 1.05rem;
+    color: var(--color-primary);
+  }
+
+  .blog-card__title a {
+    text-decoration: none;
+  }
+
+  .blog-card__title a:hover,
+  .blog-card__title a:focus-visible {
+    text-decoration: underline;
+  }
+
+  .blog-card__excerpt {
+    font-size: var(--font-size-small);
+    color: var(--color-text-main);
+  }
+
+  .blog-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+    gap: 1rem;
+  }
+
+  .blog-card__date {
+    font-size: 0.8rem;
+    color: var(--color-secondary);
+  }
+
+  .blog-card__link {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--color-primary);
+  }
+
+  .blog-card__link:hover,
+  .blog-card__link:focus-visible {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+
+  @media (width <= 1024px) {
+    .blog-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (width <= 768px) {
+    .blog-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .blog-card {
+      padding-inline: 1.4rem;
+    }
+  }
+</style>
+
+
