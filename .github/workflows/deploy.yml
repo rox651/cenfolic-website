@@ -5,7 +5,7 @@ on:
     branches:
       - main
   repository_dispatch:
-    types: [wordpress-update]
+    types: [wordpress_content_update]
   workflow_dispatch:
 
 jobs:
