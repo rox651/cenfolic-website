@@ -59,3 +59,90 @@ import estrategiaImage from '../../assets/Estrategia.png';
 </section>
 
 
+<style>
+  .section {
+    padding: var(--spacing-section-y) var(--spacing-page-x);
+  }
+
+  .section-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .section-header-centered {
+    text-align: center;
+    margin-bottom: 2.75rem;
+  }
+
+  .section-header-centered h2 span {
+    font-style: italic;
+  }
+
+  .section-strategies {
+    background: radial-gradient(
+      circle at top,
+      #245faa 0,
+      #082446 40%,
+      #020813 100%
+    );
+    color: var(--color-text-soft);
+  }
+
+  .section-strategies .section-header-centered h2 {
+    font-size: var(--font-size-h2);
+  }
+
+  .section-strategies .section-header-centered span {
+    font-style: italic;
+  }
+
+  .strategies-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--spacing-grid-gap);
+  }
+
+  .strategy-card {
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    padding: 1.6rem 1.4rem 1.7rem;
+    box-shadow: var(--shadow-card);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .strategy-card h3 {
+    font-size: 1.02rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .strategies-figure {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .strategies-figure-image {
+    block-size: 158px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    object-fit: contain;
+  }
+
+  @media (width <= 1024px) {
+    .strategies-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (width <= 768px) {
+    .strategies-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
+

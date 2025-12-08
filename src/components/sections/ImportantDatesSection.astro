@@ -54,3 +54,93 @@ const featuredIndex = getFeaturedIndex(sortedDates, currentDate);
 </section>
 
 
+<style>
+  .section {
+    padding: var(--spacing-section-y) var(--spacing-page-x);
+  }
+
+  .section-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .section-header-inline {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: baseline;
+    margin-bottom: 2.5rem;
+  }
+
+  .section-header-inline h2 {
+    font-size: var(--font-size-h2);
+  }
+
+  .section-header-inline p {
+    max-width: 520px;
+  }
+
+  .section-header-inline span {
+    font-weight: 700;
+  }
+
+  .section-important-dates {
+    background: linear-gradient(
+      135deg,
+      var(--color-primary-soft-alt),
+      #f7fbff
+    );
+  }
+
+  .section-important-dates h2 {
+    color: var(--color-primary);
+  }
+
+  .important-dates-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-grid-gap);
+  }
+
+  .date-card {
+    border-radius: 22px;
+    padding: 1.8rem 1.5rem 2rem;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border-strong);
+  }
+
+  .date-card-featured {
+    background-color: var(--color-primary);
+    color: var(--color-text-soft);
+    border-color: transparent;
+    box-shadow: var(--shadow-card);
+  }
+
+  .date-card.is-past {
+    opacity: 0.5;
+  }
+
+  .date-card h3 {
+    font-size: 1rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 0.8rem;
+  }
+
+  .date-name {
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+  }
+
+  .date-detail {
+    font-size: var(--font-size-small);
+  }
+
+  @media (width <= 768px) {
+    .important-dates-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
+

@@ -52,3 +52,77 @@
 </section>
 
 
+<style>
+  .section {
+    padding: var(--spacing-section-y) var(--spacing-page-x);
+  }
+
+  .section-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+  }
+
+  .section-header-inline {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: baseline;
+    margin-bottom: 2.5rem;
+  }
+
+  .section-header-inline h2 {
+    font-size: var(--font-size-h2);
+  }
+
+  .section-header-inline p {
+    max-width: 520px;
+  }
+
+  .section-header-inline span {
+    font-weight: 700;
+  }
+
+  .section-movements {
+    background-color: var(--color-surface);
+  }
+
+  .section-movements h2 {
+    color: var(--color-primary);
+  }
+
+  .movements-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-grid-gap);
+  }
+
+  .movement-card {
+    border-radius: 18px;
+    background-color: var(--color-primary);
+    color: var(--color-text-soft);
+    padding: 1.3rem 1.25rem;
+    text-align: center;
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .movement-card h3 {
+    font-size: 1rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .movement-card p {
+    font-size: var(--font-size-small);
+  }
+
+  @media (width <= 768px) {
+    .movements-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
+

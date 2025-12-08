@@ -1,0 +1,218 @@
+---
+import { unified } from "unified";
+import rehypeParse from "rehype-parse";
+import rehypeStringify from "rehype-stringify";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import type { WPPostWithCategory } from "../../helpers/wordpress";
+import { getAllPosts } from "../../helpers/wordpress";
+import Header from "../../components/Header.astro";
+import Footer from "../../components/Footer.astro";
+import { extractTextFromHTML } from "../../helpers/html";
+
+export async function getStaticPaths() {
+  const posts = await getAllPosts();
+
+  return posts.map((post) => ({
+    params: { category: post.categorySlug, slug: post.dateISO },
+    props: { post },
+  }));
+}
+
+
+const { post } = Astro.props as { post: WPPostWithCategory };
+
+
+
+const title = extractTextFromHTML(post.title.rendered);
+const description = extractTextFromHTML(post.excerpt?.rendered || "");
+const publishedTime = post.date;
+const modifiedTime = post.modified;
+const canonicalUrl = Astro.site
+  ? new URL(Astro.url.pathname, Astro.site).toString()
+  : Astro.url.toString();
+
+const articleLd = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: title,
+  description,
+  datePublished: publishedTime,
+  dateModified: modifiedTime,
+  mainEntityOfPage: canonicalUrl,
+  author: {
+    "@type": "Organization",
+    name: "Iglesias CENFOLIC",
+  },
+};
+
+const contentProcessor = unified()
+  .use(rehypeParse, { fragment: true })
+  .use(rehypeStringify, { allowDangerousHtml: true });
+
+const processedContent = contentProcessor
+  .processSync(post.content.rendered)
+  .toString();
+---
+
+
+<BaseLayout title={title} description={description}>
+  <Header />
+  <main id="main-content" class="blog-post-container">
+    <h1 class="blog-post-title">{title}</h1>
+    <article class="blog-post" set:html={processedContent} />
+  </main>
+  <Footer />
+  <script
+    type="application/ld+json"
+    set:html={JSON.stringify(articleLd).replace(/</g, "\\u003c")}
+  />
+</BaseLayout>
+
+
+<style is:global>
+  .blog-post-container{
+    padding: var(--spacing-page-y) 0;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-page-x);
+  }
+
+
+
+  .blog-post-title{
+    font-size: var(--font-size-h1);
+    font-weight: 700;
+    margin: 1rem 0;
+    line-height: var(--line-height-heading);
+  }
+
+ 
+
+  .blog-post time{
+    display: block;
+    margin: 1rem 0;
+    font-size: var(--font-size-small);
+   
+  }
+
+  .blog-post p{
+    font-size: var(--font-size-body);
+    margin: 1rem 0;
+    line-height: var(--line-height-body);
+  }
+
+  .blog-post p strong{
+    font-size: var(--font-size-h3);
+    font-weight: 700;
+    margin: 1rem 0;
+    line-height: var(--line-height-heading);
+  }
+
+  .wp-block-heading{
+    font-size: var(--font-size-h2);
+    font-weight: 700;
+    margin: 1rem 0;
+    line-height: var(--line-height-heading);
+  }
+  .blog-post .wp-block-pullquote{
+    margin: 1rem 0;
+  }
+ .blog-post .wp-block-pullquote :where(p,strong,em){
+    font-size: var(--font-size-h2);
+    font-style: italic;
+    text-align: center;
+    display: block;
+  }
+
+  .blog-post h2{
+    font-size: var(--font-size-h2);
+    font-weight: 700;
+    margin: 1rem 0;
+    line-height: var(--line-height-heading);
+    color: var(--color-surface);
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .blog-post :where(ul,ol){
+    margin: 1rem 0;
+    padding: 1rem;
+    list-style: disc;
+    list-style-position: inside;
+  }
+
+  .blog-post :where(ul,ol) li{
+    font-size: var(--font-size-body);
+    margin: 0.5rem 0;
+    line-height: var(--line-height-body);
+  }
+
+  .wp-block-cover{
+    height: 300px;
+    position: relative;
+  }
+
+  .wp-block-cover img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  
+
+  .wp-block-cover p{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--color-surface);
+    font-size: var(--font-size-h2);
+    font-weight: 700;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+  }
+
+  @media (width <= 768px) {
+    .blog-post-title{
+      font-size: var(--font-size-h2);
+    }
+
+    .wp-block-cover{
+    height: 180px;
+    }
+  
+
+    .wp-block-cover p{
+      font-size: var(--font-size-h3);
+    }
+
+    .blog-post p{
+      font-size: var(--font-size-body);
+    }
+
+    .blog-post p strong{
+      font-size: var(--font-size-h3);
+    }
+    
+    .wp-block-heading{
+      font-size: var(--font-size-h3);
+    }
+
+    .wp-block-pullquote :where(p,strong,em){
+      font-size: var(--font-size-h3);
+    }
+    
+    .blog-post h2{
+      font-size: var(--font-size-h3);
+    }
+
+    .blog-post :where(ul,ol) li{
+      font-size: var(--font-size-body);
+    }
+
+    .blog-post :where(ul,ol){
+      padding: 0.5rem;
+    }
+  }
+</style>

@@ -160,3 +160,156 @@ import logo from '../assets/cenfolic-logo.png';
 </footer>
 
 
+<style>
+  .site-footer {
+    background: linear-gradient(180deg, #e4f0ff 0%, #f3f8ff 100%);
+    color: var(--color-primary);
+    padding: 2.75rem var(--spacing-page-x) 2.25rem;
+  }
+
+  .footer-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.1fr) minmax(0, 1.1fr);
+    gap: 2.5rem;
+    align-items: start;
+  }
+
+  .footer-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .footer-logo-main {
+    max-width: 100%;
+    block-size: 5rem;
+    object-fit: contain;
+  }
+
+  .footer-legal {
+    font-size: 0.78rem;
+    opacity: 0.85;
+  }
+
+  .footer-title {
+    font-size: 1rem;
+    margin-bottom: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+  }
+
+  .footer-contact p + p {
+    margin-top: 0.25rem;
+  }
+
+  .footer-contact a {
+    color: var(--color-primary);
+  }
+
+  .footer-contact a:hover,
+  .footer-contact a:focus-visible {
+    color: var(--color-accent);
+  }
+
+  .footer-social-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.3rem;
+    font-size: 0.86rem;
+  }
+
+  .footer-social-list a {
+    color: var(--color-primary);
+    padding: 0.25rem 0;
+    display: inline-block;
+  }
+
+  .footer-social-list a:hover,
+  .footer-social-list a:focus-visible {
+    color: var(--color-accent);
+  }
+
+  .footer-social-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .footer-icon svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .footer-social-platform {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+  }
+
+  .footer-social-handle {
+    font-weight: 700;
+  }
+
+  .footer-bottom {
+    max-width: 1120px;
+    margin: 2rem auto 0;
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--color-primary);
+  }
+
+  .footer-contact-line {
+    justify-content: center;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .footer-contact-line svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .footer-contact-line + .footer-contact-line {
+    margin-top: 0.15rem;
+  }
+
+  .footer-bottom a {
+    color: var(--color-primary);
+  }
+
+  .footer-bottom a:hover,
+  .footer-bottom a:focus-visible {
+    color: var(--color-accent);
+  }
+
+  .footer-legal {
+    margin-top: 0.75rem;
+    font-size: 0.78rem;
+  }
+
+  @media (width <= 1024px) {
+    .footer-inner {
+      grid-template-columns: minmax(0, 1fr);
+      text-align: center;
+    }
+
+    .footer-social-heading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  @media (width <= 768px) {
+    .footer-inner {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
+
