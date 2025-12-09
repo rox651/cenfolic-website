@@ -15,7 +15,6 @@ async function toBase64(url: string): Promise<string | null> {
       reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.warn('No se pudo convertir la imagen a base64 (CORS):', error);
     return null;
   }
 }
@@ -58,8 +57,14 @@ export async function downloadImage(): Promise<void> {
   const html2canvas = (await import("html2canvas")).default;
   const canvas = await html2canvas(document.body, {
     useCORS: true,
-    allowTaint: true, // Allow tainted canvas if base64 conversion failed
-    scale: 1.5, // Better quality
+    allowTaint: true, 
+    ignoreElements: (element) => {
+      return (
+        element.classList?.contains('download-image-button') ||
+        element.tagName === 'HEADER' ||
+        element.tagName === 'FOOTER'
+      );
+    },
   });
 
   // 5. Restore original image

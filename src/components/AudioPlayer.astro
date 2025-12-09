@@ -88,8 +88,6 @@ const { audioUrl } = Astro.props;
     const audioUrlFromData = audioPlayerEl.getAttribute('data-audio-url');
     if (audioUrlFromData && audioElement) {
       audioElement.src = audioUrlFromData;
-    } else {
-      console.warn('Audio URL no encontrada');
     }
 
     function formatTime(seconds: number): string {

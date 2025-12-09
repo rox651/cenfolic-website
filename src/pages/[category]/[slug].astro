@@ -82,18 +82,16 @@ const contentText = extractTextFromHTML(post.content.rendered);
 
 
 <BaseLayout title={title} description={description}>
-  <Header  class="hide-on-capture"/>
+  <Header />
   <main id="main-content" class="blog-post-container">
     <button class="download-image-button">
       Descargar imagen
     </button>
     <h1 class="blog-post-title">{title}</h1>
-    <div class="hide-on-capture"> 
-      <AudioPlayer  audioUrl={audioUrl} />
-    </div>
+    <AudioPlayer audioUrl={audioUrl} />
     <article class="blog-post" set:html={processedContent} />
   </main>
-  <Footer class="hide-on-capture"/>
+  <Footer />
   <script
     type="application/ld+json"
     set:html={JSON.stringify(articleLd).replace(/</g, "\\u003c")}
@@ -102,15 +100,8 @@ const contentText = extractTextFromHTML(post.content.rendered);
   <script>
     async function handleDownload() {
       const { downloadImage } = await import("../../helpers/downloadImage");
-      const hideOnCaptureElements = document.querySelectorAll('.hide-on-capture');
       const button = document.querySelector('.download-image-button') as HTMLButtonElement;
       
-      // Hide elements
-      hideOnCaptureElements.forEach((el) => {
-        (el as HTMLElement).style.display = 'none';
-      });
-      
-      // Update button state
       if (button) {
         button.disabled = true;
         button.textContent = 'Generando imagen...';
@@ -119,7 +110,6 @@ const contentText = extractTextFromHTML(post.content.rendered);
       try {
         await downloadImage();
       } catch (error) {
-        console.error('Error al generar imagen:', error);
         if (button) {
           button.textContent = 'Error al descargar';
           setTimeout(() => {
@@ -127,12 +117,6 @@ const contentText = extractTextFromHTML(post.content.rendered);
           }, 2000);
         }
       } finally {
-        // Restore elements
-        hideOnCaptureElements.forEach((el) => {
-          (el as HTMLElement).style.display = '';
-        });
-        
-        // Restore button state
         if (button) {
           button.disabled = false;
           button.textContent = 'Descargar imagen';
@@ -248,6 +232,7 @@ const contentText = extractTextFromHTML(post.content.rendered);
   .wp-block-cover{
     height: 300px;
     position: relative;
+    margin-top: 1rem;
   }
 
   .wp-block-cover img{
