@@ -65,7 +65,7 @@ export async function downloadImage(): Promise<void> {
     ignoreElements: (element) => {
       return (
         element.classList?.contains('download-image-button') ||
-        element.tagName === 'AUDIO'
+        element.classList?.contains('audio-player')
       );
     },
   });
