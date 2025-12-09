@@ -50,6 +50,20 @@ const structuredData = {
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <title>{title}</title>
+    <!-- Prevent FOUC by hiding content until CSS is loaded -->
+    <style is:inline>
+      html { visibility: hidden; opacity: 0;transition: opacity 0.3s; }
+      html.loaded { visibility: visible; opacity: 1;  }
+    </style>
+    <script is:inline>
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+          document.documentElement.classList.add('loaded');
+        });
+      } else {
+        document.documentElement.classList.add('loaded');
+      }
+    </script>
     <meta name="description" content={description} />
     <meta name="author" content="Iglesias Cenfolic" />
     <meta name="robots" content="index,follow" />
@@ -81,19 +95,6 @@ const structuredData = {
       type="application/rss+xml"
       title="CENFOLIC Podcast"
       href={new URL("rss.xml", site)}
-    />
-
-    <link
-      rel="preload"
-      as="image"
-      href="/Grupo-de-trabajo-cenfolic.webp"
-      fetchpriority="high"
-    />
-    <link
-      rel="preload"
-      as="image"
-      href="/mapamundi-cenfolic.webp"
-      fetchpriority="high"
     />
 
     <script
