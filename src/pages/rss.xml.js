@@ -96,14 +96,14 @@ export async function GET(context) {
     customData: `
       <language>es</language>
       <copyright>Copyright ${new Date().getFullYear()} Iglesias CENFOLIC</copyright>
-      <managingEditor>info@cenfolic.com (Iglesias CENFOLIC)</managingEditor>
-      <webMaster>info@cenfolic.com (Iglesias CENFOLIC)</webMaster>
+      <managingEditor>medios@cenfolic.com (Iglesias CENFOLIC)</managingEditor>
+      <webMaster>medios@cenfolic.com (Iglesias CENFOLIC)</webMaster>
       <atom:link href="${feedUrl}" rel="self" type="application/rss+xml" />
       <itunes:author>Iglesias CENFOLIC</itunes:author>
       <itunes:summary>Devocionales y mensajes de Iglesias CENFOLIC para acompañar tu tiempo con Dios</itunes:summary>
       <itunes:owner>
         <itunes:name>Iglesias CENFOLIC</itunes:name>
-        <itunes:email>info@cenfolic.com</itunes:email>
+        <itunes:email>medios@cenfolic.com</itunes:email>
       </itunes:owner>
       <itunes:explicit>no</itunes:explicit>
       <itunes:category text="Religion &amp; Spirituality">

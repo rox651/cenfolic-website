@@ -50,9 +50,8 @@ const structuredData = {
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <title>{title}</title>
-    <!-- Prevent FOUC by hiding content until CSS is loaded -->
     <style is:inline>
-      html { visibility: hidden; opacity: 0;transition: opacity 0.3s; }
+      html { visibility: hidden; opacity: 0;transition: opacity 0.2s; }
       html.loaded { visibility: visible; opacity: 1;  }
     </style>
     <script is:inline>
