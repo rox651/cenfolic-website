@@ -83,6 +83,10 @@ export async function GET(context) {
   // URL del feed RSS
   const feedUrl = new URL('rss.xml', context.site).toString();
   
+  // Convertir context.site a string para generar el GUID
+  const siteString = context.site?.toString() || context.site?.href || 'cenfolic.com';
+  const siteHost = siteString.replace(/https?:\/\//, '').replace(/\/$/, '');
+  
   return rss({
     title: 'CENFOLIC Podcast',
     description: 'Devocionales y mensajes de Iglesias CENFOLIC para acompañar tu tiempo con Dios',
@@ -107,7 +111,7 @@ export async function GET(context) {
       </itunes:category>
       <itunes:image href="${new URL('/cenfolic-logo.png', context.site).toString()}"/>
       <podcast:locked>yes</podcast:locked>
-      <podcast:guid>cenfolic-podcast-${context.site?.replace(/https?:\/\//, '').replace(/\/$/, '')}</podcast:guid>
+      <podcast:guid>cenfolic-podcast-${siteHost}</podcast:guid>
     `,
     xmlns: {
       itunes: 'http://www.itunes.com/dtds/podcast-1.0.dtd',
