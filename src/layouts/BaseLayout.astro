@@ -50,10 +50,7 @@ const structuredData = {
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <title>{title}</title>
-    <style is:inline>
-      html { visibility: hidden; opacity: 0;transition: opacity 0.2s; }
-      html.loaded { visibility: visible; opacity: 1;  }
-    </style>
+   
     <script is:inline>
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
@@ -95,6 +92,10 @@ const structuredData = {
       title="CENFOLIC Podcast"
       href={new URL("rss.xml", site)}
     />
+
+    <script is:inline>
+      let FF_FOUC_FIX;
+    </script>
 
     <script
       type="application/ld+json"
