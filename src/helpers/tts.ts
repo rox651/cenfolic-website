@@ -7,7 +7,7 @@ function calculateContentHash(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex');
 }
 
-async function fileExists(filePath: string): Promise<boolean> {
+export async function fileExists(filePath: string): Promise<boolean> {
   try {
     await access(filePath);
     return true;

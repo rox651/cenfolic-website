@@ -17,6 +17,12 @@ const { audioUrl } = Astro.props;
         <svg class="audio-player__icon audio-player__icon--pause" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: none;">
           <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" fill="currentColor"/>
         </svg>
+        <svg class="audio-player__icon audio-player__icon--loading" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: none;">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="31.416" stroke-dashoffset="23.562" fill="none" opacity="0.3"/>
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="7.854" stroke-dashoffset="7.854" fill="none">
+            <animate attributeName="stroke-dashoffset" dur="1s" values="31.416;0" repeatCount="indefinite"/>
+          </circle>
+        </svg>
       </button>
     </div>
     
@@ -54,11 +60,13 @@ const { audioUrl } = Astro.props;
     interface AudioPlayerState {
       isPlaying: boolean;
       audioElement: HTMLAudioElement | null;
+      userInitiated: boolean;
     }
 
     const state: AudioPlayerState = {
       isPlaying: false,
       audioElement: null,
+      userInitiated: false,
     };
 
     const audioElement = document.getElementById('audio-element') as HTMLAudioElement;
@@ -70,10 +78,8 @@ const { audioUrl } = Astro.props;
     const statusEl = document.getElementById('audio-status');
     const statusText = statusEl?.querySelector('.audio-player__status-text');
 
-    // Configurar la URL del audio desde el atributo data
     const audioPlayerEl = document.getElementById('audio-player');
     if (!audioPlayerEl) {
-      // No hay reproductor disponible (audio no generado)
       return;
     }
 
@@ -106,10 +112,38 @@ const { audioUrl } = Astro.props;
       }
     }
 
-    function setStatus(message: string, isError = false) {
+    function setStatus(message: string, isError = false, isLoading = false) {
       if (statusText) {
         statusText.textContent = message;
         statusEl?.classList.toggle('audio-player__status--error', isError);
+        statusEl?.classList.toggle('audio-player__status--loading', isLoading);
+      }
+    }
+
+    function setLoadingState(isLoading: boolean) {
+      if (!toggleButton) return;
+      
+      const button = toggleButton as HTMLButtonElement;
+      const playIcon = toggleButton.querySelector('.audio-player__icon--play');
+      const pauseIcon = toggleButton.querySelector('.audio-player__icon--pause');
+      const loadingIcon = toggleButton.querySelector('.audio-player__icon--loading');
+      
+      if (isLoading) {
+        playIcon?.setAttribute('style', 'display: none;');
+        pauseIcon?.setAttribute('style', 'display: none;');
+        loadingIcon?.setAttribute('style', 'display: block;');
+        button.disabled = true;
+        setStatus('Cargando audio...', false, true);
+      } else {
+        loadingIcon?.setAttribute('style', 'display: none;');
+        button.disabled = false;
+        if (state.isPlaying) {
+          playIcon?.setAttribute('style', 'display: none;');
+          pauseIcon?.setAttribute('style', 'display: block;');
+        } else {
+          playIcon?.setAttribute('style', 'display: block;');
+          pauseIcon?.setAttribute('style', 'display: none;');
+        }
       }
     }
 
@@ -124,22 +158,66 @@ const { audioUrl } = Astro.props;
         toggleButton.querySelector('.audio-player__icon--pause')?.setAttribute('style', 'display: none;');
         setStatus('Pausado');
       } else {
-        await audioElement.play();
-        state.isPlaying = true;
-        toggleButton.setAttribute('aria-label', 'Pausar audio');
-        toggleButton.querySelector('.audio-player__icon--play')?.setAttribute('style', 'display: none;');
-        toggleButton.querySelector('.audio-player__icon--pause')?.setAttribute('style', 'display: block;');
-        setStatus('Reproduciendo...');
+        state.userInitiated = true;
+        
+        if (audioElement.readyState < 2) {
+          setLoadingState(true);
+        }
+        
+        try {
+          await audioElement.play();
+          state.isPlaying = true;
+          toggleButton.setAttribute('aria-label', 'Pausar audio');
+          toggleButton.querySelector('.audio-player__icon--play')?.setAttribute('style', 'display: none;');
+          toggleButton.querySelector('.audio-player__icon--pause')?.setAttribute('style', 'display: block;');
+          setLoadingState(false);
+          setStatus('Reproduciendo...');
+        } catch (error) {
+          setLoadingState(false);
+          setStatus('Error al reproducir', true);
+        }
       }
     }
 
-    // Event listeners
     toggleButton?.addEventListener('click', togglePlayback);
+
+    audioElement.addEventListener('loadstart', () => {
+      if (state.userInitiated) {
+        setLoadingState(true);
+        setStatus('Cargando audio...', false, true);
+      }
+    });
+
+    audioElement.addEventListener('waiting', () => {
+      if (state.userInitiated && state.isPlaying) {
+        setLoadingState(true);
+        setStatus('Cargando audio...', false, true);
+      }
+    });
+
+    audioElement.addEventListener('canplay', () => {
+      setLoadingState(false);
+      if (!state.isPlaying) {
+        if (state.userInitiated) {
+          setStatus('Listo para reproducir');
+        } else {
+          setStatus('Listo para reproducir');
+        }
+      }
+    });
+
+    audioElement.addEventListener('playing', () => {
+      setLoadingState(false);
+      setStatus('Reproduciendo...');
+    });
 
     audioElement.addEventListener('timeupdate', updateProgress);
     audioElement.addEventListener('loadedmetadata', () => {
       if (durationEl && audioElement.duration) {
         durationEl.textContent = formatTime(audioElement.duration);
+      }
+      if (!state.userInitiated || audioElement.readyState >= 2) {
+        setLoadingState(false);
       }
     });
     audioElement.addEventListener('ended', () => {
@@ -161,7 +239,6 @@ const { audioUrl } = Astro.props;
       }
     });
 
-    // Progress bar click to seek
     progressBar?.addEventListener('click', (e) => {
       if (!audioElement || !audioElement.duration) return;
       
@@ -230,6 +307,19 @@ const { audioUrl } = Astro.props;
     width: 24px;
     height: 24px;
     fill: currentColor;
+  }
+
+  .audio-player__icon--loading {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .audio-player__controls {

@@ -10,7 +10,7 @@ import Footer from "../../components/Footer.astro";
 import AudioPlayer from "../../components/AudioPlayer.astro";
 import { extractTextFromHTML } from "../../helpers/html";
 import { generateAudioFile } from "../../helpers/tts";
-
+  
 export async function getStaticPaths() {
   const posts = await getAllPosts();
 
@@ -82,21 +82,92 @@ const contentText = extractTextFromHTML(post.content.rendered);
 
 
 <BaseLayout title={title} description={description}>
-  <Header />
+  <Header  class="hide-on-capture"/>
   <main id="main-content" class="blog-post-container">
+    <button class="download-image-button">
+      Descargar imagen
+    </button>
     <h1 class="blog-post-title">{title}</h1>
-    <AudioPlayer audioUrl={audioUrl} />
+    <div class="hide-on-capture"> 
+      <AudioPlayer  audioUrl={audioUrl} />
+    </div>
     <article class="blog-post" set:html={processedContent} />
   </main>
-  <Footer />
+  <Footer class="hide-on-capture"/>
   <script
     type="application/ld+json"
     set:html={JSON.stringify(articleLd).replace(/</g, "\\u003c")}
   />
+  
+  <script>
+    async function handleDownload() {
+      const { downloadImage } = await import("../../helpers/downloadImage");
+      const hideOnCaptureElements = document.querySelectorAll('.hide-on-capture');
+      const button = document.querySelector('.download-image-button') as HTMLButtonElement;
+      
+      // Hide elements
+      hideOnCaptureElements.forEach((el) => {
+        (el as HTMLElement).style.display = 'none';
+      });
+      
+      // Update button state
+      if (button) {
+        button.disabled = true;
+        button.textContent = 'Generando imagen...';
+      }
+      
+      try {
+        await downloadImage();
+      } catch (error) {
+        console.error('Error al generar imagen:', error);
+        if (button) {
+          button.textContent = 'Error al descargar';
+          setTimeout(() => {
+            button.textContent = 'Descargar imagen';
+          }, 2000);
+        }
+      } finally {
+        // Restore elements
+        hideOnCaptureElements.forEach((el) => {
+          (el as HTMLElement).style.display = '';
+        });
+        
+        // Restore button state
+        if (button) {
+          button.disabled = false;
+          button.textContent = 'Descargar imagen';
+        }
+      }
+    }
+    
+    const downloadButton = document.querySelector('.download-image-button');
+    if (downloadButton) {
+      downloadButton.addEventListener('click', handleDownload);
+    }
+  </script>
 </BaseLayout>
 
 
 <style is:global>
+
+  .download-image-button{
+   background-color: var(--color-primary);
+   color: var(--color-surface);
+   padding: 1rem 2rem;
+   border-radius: var(--radius-pill);
+   border: none;
+   font-size: var(--font-size-body);
+   font-weight: 700;
+   text-transform: uppercase;
+   letter-spacing: 0.08em;
+   cursor: pointer;
+  }
+
+  .download-image-button:disabled{
+    background-color: var(--color-border-strong);
+    color: var(--color-surface);
+    cursor: not-allowed;
+  }
   .blog-post-container{
     padding: var(--spacing-page-y) 0;
     max-width: 1120px;

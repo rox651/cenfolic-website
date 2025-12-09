@@ -16,6 +16,7 @@ export interface WPPost {
   guid: Content;
   author: number;
   categories: number[];
+
 }
 
 export interface Content {
@@ -111,8 +112,10 @@ export async function getPosts(limit: number = 3): Promise<WPPostWithCategory[]>
 
 export async function getAllPosts(): Promise<WPPostWithCategory[]> {
   const posts = await fetchJSON<WPPost[]>(
-    "/posts",
+    "/posts?_embed",
   );
 
   return await adaptPosts(posts)
 }
+
+
