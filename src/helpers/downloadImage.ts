@@ -85,8 +85,40 @@ export async function downloadImage(): Promise<void> {
     }
   }
 
-  // 6. Download
-  const url = canvas.toDataURL("image/png");
+  // 6. Add horizontal padding to the canvas
+  const root = document.documentElement;
+  const paddingValue = getComputedStyle(root).getPropertyValue('--spacing-page-x').trim();
+  
+  // Convert rem to pixels (get font size from root element)
+  const rootFontSize = parseFloat(getComputedStyle(root).fontSize) || 16;
+  let paddingPx: number;
+  
+  if (paddingValue.endsWith('rem')) {
+    const remValue = parseFloat(paddingValue);
+    paddingPx = remValue * rootFontSize;
+  } else if (paddingValue.endsWith('px')) {
+    paddingPx = parseFloat(paddingValue);
+  } else {
+    // Default to 5.5rem (88px at 16px base)
+    paddingPx = 5.5 * rootFontSize;
+  }
+  
+  const paddedCanvas = document.createElement('canvas');
+  paddedCanvas.width = canvas.width + (paddingPx * 2);
+  paddedCanvas.height = canvas.height;
+  const ctx = paddedCanvas.getContext('2d');
+  
+  if (ctx) {
+    // Fill with white background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, paddedCanvas.width, paddedCanvas.height);
+    
+    // Draw the original canvas with horizontal padding
+    ctx.drawImage(canvas, paddingPx, 0);
+  }
+
+  // 7. Download
+  const url = paddedCanvas.toDataURL("image/png");
   const a = document.createElement("a");
   a.href = url;
   const title = document.querySelector(".blog-post-title")?.textContent || "pagina";
