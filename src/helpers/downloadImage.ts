@@ -55,14 +55,17 @@ export async function downloadImage(): Promise<void> {
 
   // 4. Capture the page
   const html2canvas = (await import("html2canvas")).default;
-  const canvas = await html2canvas(document.body, {
+  const blogPostContent = document.querySelector(".blog-post-content") as HTMLElement;
+  if (!blogPostContent) {
+    return;
+  }
+  const canvas = await html2canvas(blogPostContent, {
     useCORS: true,
     allowTaint: true, 
     ignoreElements: (element) => {
       return (
         element.classList?.contains('download-image-button') ||
-        element.tagName === 'HEADER' ||
-        element.tagName === 'FOOTER'
+        element.tagName === 'AUDIO'
       );
     },
   });

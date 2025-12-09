@@ -87,9 +87,11 @@ const contentText = extractTextFromHTML(post.content.rendered);
     <button class="download-image-button">
       Descargar imagen
     </button>
-    <h1 class="blog-post-title">{title}</h1>
-    <AudioPlayer audioUrl={audioUrl} />
-    <article class="blog-post" set:html={processedContent} />
+    <div class="blog-post-content">
+      <h1 class="blog-post-title">{title}</h1>
+      <AudioPlayer audioUrl={audioUrl} />
+      <article class="blog-post" set:html={processedContent} />
+    </div>
   </main>
   <Footer />
   <script
