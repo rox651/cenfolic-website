@@ -9,6 +9,7 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/rss": "^4.0.14",
     "@types/jsdom": "^27.0.0",
     "astro": "^5.16.4",
     "html2canvas": "^1.4.1",
