@@ -72,6 +72,8 @@ FileETag MTime Size
   Header set X-Content-Type-Options "nosniff"
   Header set X-Frame-Options "SAMEORIGIN"
   Header set X-XSS-Protection "1; mode=block"
+  # Support byte-range requests for podcast streaming (required by Apple Podcasts/Spotify)
+  Header set Accept-Ranges bytes
 </IfModule>
 
 # Enable browser caching

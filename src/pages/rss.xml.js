@@ -80,6 +80,9 @@ export async function GET(context) {
   const validItems = items.filter(item => item !== null);
   validItems.sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime());
   
+  // URL del feed RSS
+  const feedUrl = new URL('rss.xml', context.site).toString();
+  
   return rss({
     title: 'CENFOLIC Podcast',
     description: 'Devocionales y mensajes de Iglesias CENFOLIC para acompañar tu tiempo con Dios',
@@ -91,6 +94,7 @@ export async function GET(context) {
       <copyright>Copyright ${new Date().getFullYear()} Iglesias CENFOLIC</copyright>
       <managingEditor>info@cenfolic.com (Iglesias CENFOLIC)</managingEditor>
       <webMaster>info@cenfolic.com (Iglesias CENFOLIC)</webMaster>
+      <atom:link href="${feedUrl}" rel="self" type="application/rss+xml" />
       <itunes:author>Iglesias CENFOLIC</itunes:author>
       <itunes:summary>Devocionales y mensajes de Iglesias CENFOLIC para acompañar tu tiempo con Dios</itunes:summary>
       <itunes:owner>
@@ -102,9 +106,13 @@ export async function GET(context) {
         <itunes:category text="Christianity"/>
       </itunes:category>
       <itunes:image href="${new URL('/cenfolic-logo.png', context.site).toString()}"/>
+      <podcast:locked>yes</podcast:locked>
+      <podcast:guid>cenfolic-podcast-${context.site?.replace(/https?:\/\//, '').replace(/\/$/, '')}</podcast:guid>
     `,
     xmlns: {
       itunes: 'http://www.itunes.com/dtds/podcast-1.0.dtd',
+      atom: 'http://www.w3.org/2005/Atom',
+      podcast: 'https://podcastindex.org/namespace/1.0',
     },
   });
 }
