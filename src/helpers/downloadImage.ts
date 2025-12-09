@@ -53,15 +53,42 @@ export async function downloadImage(): Promise<void> {
     }
   }
 
-  // 4. Capture the page
+  // 4. Get padding value and add it temporarily to blog-post-content
+  const root = document.documentElement;
+  const paddingValue = getComputedStyle(root).getPropertyValue('--spacing-page-x').trim();
+  
+  const rootFontSize = parseFloat(getComputedStyle(root).fontSize) || 16;
+  let paddingPx: number;
+  
+  if (paddingValue.endsWith('rem')) {
+    const remValue = parseFloat(paddingValue);
+    paddingPx = remValue * rootFontSize;
+  } else if (paddingValue.endsWith('px')) {
+    paddingPx = parseFloat(paddingValue);
+  } else {
+    paddingPx = 5.5 * rootFontSize;
+  }
+
+  // 5. Capture the page
   const html2canvas = (await import("html2canvas")).default;
   const blogPostContent = document.querySelector(".blog-post-content") as HTMLElement;
   if (!blogPostContent) {
     return;
   }
+
+  const originalPaddingLeft = blogPostContent.style.paddingLeft;
+  const originalPaddingRight = blogPostContent.style.paddingRight;
+  const originalBoxSizing = blogPostContent.style.boxSizing;
+  const originalWidth = blogPostContent.style.width;
+  
+  blogPostContent.style.boxSizing = 'content-box';
+  blogPostContent.style.paddingLeft = `${paddingPx}px`;
+  blogPostContent.style.paddingRight = `${paddingPx}px`;
+
   const canvas = await html2canvas(blogPostContent, {
     useCORS: true,
-    allowTaint: true, 
+    allowTaint: true,
+    backgroundColor: '#ffffff',
     ignoreElements: (element) => {
       return (
         element.classList?.contains('download-image-button') ||
@@ -70,7 +97,12 @@ export async function downloadImage(): Promise<void> {
     },
   });
 
-  // 5. Restore original image
+  blogPostContent.style.paddingLeft = originalPaddingLeft;
+  blogPostContent.style.paddingRight = originalPaddingRight;
+  blogPostContent.style.boxSizing = originalBoxSizing;
+  blogPostContent.style.width = originalWidth;
+
+  // 6. Restore original image
   if (coverImg && originalSrc) {
     coverImg.src = originalSrc;
     if (originalCrossOrigin !== null) {
@@ -85,40 +117,8 @@ export async function downloadImage(): Promise<void> {
     }
   }
 
-  // 6. Add horizontal padding to the canvas
-  const root = document.documentElement;
-  const paddingValue = getComputedStyle(root).getPropertyValue('--spacing-page-x').trim();
-  
-  // Convert rem to pixels (get font size from root element)
-  const rootFontSize = parseFloat(getComputedStyle(root).fontSize) || 16;
-  let paddingPx: number;
-  
-  if (paddingValue.endsWith('rem')) {
-    const remValue = parseFloat(paddingValue);
-    paddingPx = remValue * rootFontSize;
-  } else if (paddingValue.endsWith('px')) {
-    paddingPx = parseFloat(paddingValue);
-  } else {
-    // Default to 5.5rem (88px at 16px base)
-    paddingPx = 5.5 * rootFontSize;
-  }
-  
-  const paddedCanvas = document.createElement('canvas');
-  paddedCanvas.width = canvas.width + (paddingPx * 2);
-  paddedCanvas.height = canvas.height;
-  const ctx = paddedCanvas.getContext('2d');
-  
-  if (ctx) {
-    // Fill with white background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, paddedCanvas.width, paddedCanvas.height);
-    
-    // Draw the original canvas with horizontal padding
-    ctx.drawImage(canvas, paddingPx, 0);
-  }
-
   // 7. Download
-  const url = paddedCanvas.toDataURL("image/png");
+  const url = canvas.toDataURL("image/png");
   const a = document.createElement("a");
   a.href = url;
   const title = document.querySelector(".blog-post-title")?.textContent || "pagina";
