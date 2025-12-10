@@ -5,6 +5,8 @@ import { stat } from 'fs/promises';
 import { join } from 'path';
 import { fileExists } from '../helpers/tts';
 
+export const prerender = true;
+
 export async function GET(context) {
   const posts = await getAllPosts();
   
