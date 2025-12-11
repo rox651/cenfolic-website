@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "postbuild": "node scripts/generate-images.mjs",
+    "build:full": "astro build && node scripts/generate-images.mjs",
     "preview": "astro preview",
     "astro": "astro"
   },
@@ -17,6 +19,7 @@
     "openai": "^6.10.0"
   },
   "devDependencies": {
-    "@astrojs/sitemap": "^3.6.0"
+    "@astrojs/sitemap": "^3.6.0",
+    "puppeteer": "^24.32.1"
   }
 }
