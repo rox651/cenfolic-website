@@ -143,7 +143,23 @@ async function generateImageFromHtml(htmlFilePath, outputPath, width = 650, serv
     });
 
     // Additional wait to ensure styles are applied
-    await page.waitForTimeout(1000);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Add padding and background to the captured element
+    await page.evaluate(() => {
+      const el = document.querySelector('.blog-post-content');
+      if (el) {
+        const PADDING_X = '32px';
+        const PADDING_Y = '32px';
+        el.style.boxSizing = 'border-box';
+        el.style.padding = `${PADDING_Y} ${PADDING_X}`;
+        el.style.background = '#ffffff';
+        el.style.width = '650px';
+        el.style.maxWidth = '650px';
+        el.style.margin = '0 auto';
+        el.style.borderRadius = '12px';
+      }
+    });
 
     // Hide elements that shouldn't be in the screenshot
     await page.evaluate(() => {
