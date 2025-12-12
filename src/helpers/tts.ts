@@ -7,6 +7,31 @@ function calculateContentHash(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex');
 }
 
+/**
+ * Preprocesa el texto para mejorar la pronunciación en TTS,
+ * especialmente para instrucciones de puntuación en español.
+ */
+function preprocessTextForTTS(text: string): string {
+  let processed = text;
+  
+  // Reemplazar "punto y seguido" con un punto seguido de una pausa corta
+  // Maneja casos donde ya hay un punto antes o después
+  processed = processed.replace(/\.\s*\bpunto y seguido\b/gi, '.');
+  processed = processed.replace(/\bpunto y seguido\b/gi, '. ');
+  
+  // Reemplazar "punto y aparte" con un punto seguido de una pausa más larga
+  // Maneja casos donde ya hay un punto antes o después
+  processed = processed.replace(/\.\s*\bpunto y aparte\b/gi, '.');
+  processed = processed.replace(/\bpunto y aparte\b/gi, '.\n\n');
+  
+  // Normalizar espacios múltiples y saltos de línea
+  processed = processed.replace(/\n{3,}/g, '\n\n'); // Máximo 2 saltos de línea consecutivos
+  processed = processed.replace(/[ \t]+/g, ' '); // Normalizar espacios
+  processed = processed.replace(/\.\s*\./g, '.'); // Eliminar puntos duplicados
+  
+  return processed.trim();
+}
+
 export async function fileExists(filePath: string): Promise<boolean> {
   try {
     await access(filePath);
@@ -28,7 +53,9 @@ export async function generateAudioFile(
     throw new Error('OPEN_AI_KEY no está configurada');
   }
 
-  const contentHash = calculateContentHash(text);
+  // Preprocesar el texto para mejorar la pronunciación TTS
+  const processedText = preprocessTextForTTS(text);
+  const contentHash = calculateContentHash(processedText);
   const hashPath = outputPath.replace('.mp3', '.hash');
   
   const dir = join(process.cwd(), 'public', outputPath.split('/').slice(0, -1).join('/'));
@@ -73,7 +100,7 @@ export async function generateAudioFile(
     const mp3 = await client.audio.speech.create({
       model: 'gpt-4o-mini-tts',
       voice: 'alloy',
-      input: text,
+      input: processedText,
       response_format: 'mp3',
     });
 
