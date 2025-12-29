@@ -1,0 +1,26 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Header from "../../components/Header.astro";
+import Footer from "../../components/Footer.astro";
+import BlogPostsSection from "../../components/sections/BlogPostsSection.astro";
+import { getAllPosts } from "../../helpers/wordpress";
+
+const allPosts = await getAllPosts();
+---
+
+<BaseLayout
+  title="Blog – Iglesias Cenfolic"
+  description="Todos los devocionales y mensajes de Iglesias CENFOLIC para acompañar tu tiempo con Dios."
+>
+  <Header />
+  <main id="main-content">
+    <BlogPostsSection 
+      posts={allPosts}
+      title="Todas las <span>reflexiones</span>"
+      subtitle="Explora todos nuestros devocionales y mensajes para acompañar tu tiempo con Dios."
+      showViewMore={false}
+    />
+  </main>
+  <Footer />
+</BaseLayout>
+

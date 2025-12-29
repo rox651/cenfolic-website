@@ -4,9 +4,17 @@ import { extractTextFromHTML } from "../../helpers/html";
 
 interface Props {
   posts: WPPostWithCategory[];
+  title?: string;
+  subtitle?: string;
+  showViewMore?: boolean;
 }
 
-const { posts } = Astro.props as Props;
+const { 
+  posts,
+  title = "Últimas <span>reflexiones</span>",
+  subtitle = "Devocionales y mensajes recientes para acompañar tu tiempo con Dios.",
+  showViewMore = true
+} = Astro.props as Props;
 ---
 
 <section
@@ -16,11 +24,9 @@ const { posts } = Astro.props as Props;
 >
   <div class="section-inner">
     <header class="section-header-centered">
-      <h2 id="blog-title">
-        Últimas <span>reflexiones</span>
-      </h2>
+      <h2 id="blog-title" set:html={title} />
       <p class="section-subtitle">
-        Devocionales y mensajes recientes para acompañar tu tiempo con Dios.
+        {subtitle}
       </p>
     </header>
 
@@ -60,6 +66,14 @@ const { posts } = Astro.props as Props;
         })
       }
     </div>
+
+    {showViewMore && (
+      <div class="blog-actions">
+        <a href="/blog" class="blog-view-more">
+          Ver más reflexiones
+        </a>
+      </div>
+    )}
   </div>
 </section>
 
@@ -175,6 +189,38 @@ const { posts } = Astro.props as Props;
     text-decoration: none;
   }
 
+  .blog-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 3rem;
+  }
+
+  .blog-view-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 2.5rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--color-surface);
+    background-color: var(--color-primary);
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: 2px solid var(--color-primary);
+  }
+
+  .blog-view-more:hover,
+  .blog-view-more:focus-visible {
+    background-color: transparent;
+    color: var(--color-primary);
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(6, 34, 80, 0.15);
+  }
+
   @media (width <= 1024px) {
     .blog-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -188,6 +234,11 @@ const { posts } = Astro.props as Props;
 
     .blog-card {
       padding-inline: 1.4rem;
+    }
+
+    .blog-view-more {
+      padding: 0.9rem 2rem;
+      font-size: 0.85rem;
     }
   }
 </style>

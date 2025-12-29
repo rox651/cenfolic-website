@@ -103,7 +103,7 @@ async function adaptPosts(posts: WPPost[]): Promise<WPPostWithCategory[]> {
 
 export async function getPosts(limit: number = 3): Promise<WPPostWithCategory[]> {
   const posts = await fetchJSON<WPPost[]>(
-    `/posts?filter[posts_per_page]=${limit}&orderby=date&order=desc`
+    `/posts?per_page=${limit}&orderby=date&order=desc`
   );
 
   return await adaptPosts(posts)
@@ -112,7 +112,7 @@ export async function getPosts(limit: number = 3): Promise<WPPostWithCategory[]>
 
 export async function getAllPosts(): Promise<WPPostWithCategory[]> {
   const posts = await fetchJSON<WPPost[]>(
-    "/posts?_embed",
+    "/posts?per_page=100&orderby=date&order=desc",
   );
 
   return await adaptPosts(posts)
