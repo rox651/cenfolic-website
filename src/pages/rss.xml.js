@@ -90,7 +90,7 @@ export async function GET(context) {
   const siteHost = siteString.replace(/https?:\/\//, '').replace(/\/$/, '');
   
   return rss({
-    title: 'CENFOLIC Podcast',
+    title: 'Devocionales CENFOLIC',
     description: 'Devocionales y mensajes de Iglesias CENFOLIC para acompañar tu tiempo con Dios',
     site: context.site,
     items: validItems,
@@ -111,7 +111,7 @@ export async function GET(context) {
       <itunes:category text="Religion &amp; Spirituality">
         <itunes:category text="Christianity"/>
       </itunes:category>
-      <itunes:image href="${new URL('/cenfolic-logo.png', context.site).toString()}"/>
+      <itunes:image href="${new URL('/Podcast Iglesias CENFOLIC2.png', context.site).toString()}"/>
       <podcast:locked>yes</podcast:locked>
       <podcast:guid>cenfolic-podcast-${siteHost}</podcast:guid>
     `,
