@@ -40,10 +40,12 @@ FileETag MTime Size
   # HTML - cache for 1 hour (can be revalidated)
   ExpiresByType text/html "access plus 1 hour"
   
-  # XML files (RSS, sitemap)
+  # XML files (sitemap) - cache for 1 day
   ExpiresByType application/xml "access plus 1 day"
   ExpiresByType text/xml "access plus 1 day"
-  ExpiresByType application/rss+xml "access plus 1 day"
+  
+  # RSS feed - no cache (always fetch fresh content)
+  ExpiresByType application/rss+xml "access plus 0 seconds"
 </IfModule>
 
 # Cache-Control headers (complement to Expires)
@@ -58,10 +60,17 @@ FileETag MTime Size
     Header set Cache-Control "public, max-age=3600, must-revalidate"
   </FilesMatch>
   
-  # Cache XML/RSS for 1 day
-  <FilesMatch "\.(xml|rss)$">
+  # Cache XML files for 1 day (sitemap and other XML)
+  <FilesMatch "\.xml$">
     Header set Cache-Control "public, max-age=86400"
   </FilesMatch>
+  
+  # RSS feed - no cache (always fetch fresh content) - must be after general XML rule to override it
+  <Files "rss.xml">
+    Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </Files>
   
   # Remove ETag for better caching (optional, but recommended with Cache-Control)
   Header unset ETag
