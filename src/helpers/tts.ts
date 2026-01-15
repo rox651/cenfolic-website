@@ -53,7 +53,6 @@ export async function generateAudioFile(
     throw new Error('OPEN_AI_KEY no está configurada');
   }
 
-  // Preprocesar el texto para mejorar la pronunciación TTS
   const processedText = preprocessTextForTTS(text);
   const contentHash = calculateContentHash(processedText);
   const hashPath = outputPath.replace('.mp3', '.hash');
@@ -96,12 +95,16 @@ export async function generateAudioFile(
     apiKey: openAiKey,
   });
 
+  const voiceInstructions = `Use a warm, fresh, upbeat, and expressive delivery that feels like a close friend giving heartfelt advice. Keep a hopeful, motivating tone with a subtle spiritual warmth—never preachy. Use dynamic intonation, clear articulation, and a lively pace (medium-fast) with short intentional pauses for emphasis. Maintain consistent loudness and distance from the mic; avoid volume swings, mumbling, or monotone delivery. Speak in neutral Latin American Spanish.
+Bible references: when a book starts with a number, pronounce it as an ordinal in Spanish (e.g., "1 Reyes 3:15–17" → "Primera de Reyes, tres, quince al diecisiete"). For chapter:verse, say the chapter number, brief pause, then the verse(s); for ranges use "al". Do not read any meta-instructions aloud.`;
+
   try {
     const mp3 = await client.audio.speech.create({
-      model: 'gpt-4o-mini-tts',
+      model: 'gpt-4o-mini-tts-2025-03-20',
       voice: 'alloy',
       input: processedText,
       response_format: 'mp3',
+      instructions: voiceInstructions,
     });
 
     const buffer = Buffer.from(await mp3.arrayBuffer());
