@@ -7,27 +7,50 @@ function calculateContentHash(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex');
 }
 
-/**
- * Preprocesa el texto para mejorar la pronunciación en TTS,
- * especialmente para instrucciones de puntuación en español.
- */
+function transformBibleReferences(text: string): string {
+  let processed = text;
+  
+  const bibleReferences: Array<[RegExp, string]> = [
+    [/1\s+Samuel/gi, 'Primera de Samuel'],
+    [/2\s+Samuel/gi, 'Segunda de Samuel'],
+    [/1\s+Reyes/gi, 'Primera de Reyes'],
+    [/2\s+Reyes/gi, 'Segunda de Reyes'],
+    [/1\s+Crónicas/gi, 'Primera de Crónicas'],
+    [/2\s+Crónicas/gi, 'Segunda de Crónicas'],
+    [/1\s+Corintios/gi, 'Primera de Corintios'],
+    [/2\s+Corintios/gi, 'Segunda de Corintios'],
+    [/1\s+Tesalonicenses/gi, 'Primera de Tesalonicenses'],
+    [/2\s+Tesalonicenses/gi, 'Segunda de Tesalonicenses'],
+    [/1\s+Timoteo/gi, 'Primera de Timoteo'],
+    [/2\s+Timoteo/gi, 'Segunda de Timoteo'],
+    [/1\s+Pedro/gi, 'Primera de Pedro'],
+    [/2\s+Pedro/gi, 'Segunda de Pedro'],
+    [/1\s+Juan/gi, 'Primera de Juan'],
+    [/2\s+Juan/gi, 'Segunda de Juan'],
+    [/3\s+Juan/gi, 'Tercera de Juan'],
+  ];
+  
+  for (const [regex, replacement] of bibleReferences) {
+    processed = processed.replace(regex, replacement);
+  }
+  
+  return processed;
+}
+
 function preprocessTextForTTS(text: string): string {
   let processed = text;
   
-  // Reemplazar "punto y seguido" con un punto seguido de una pausa corta
-  // Maneja casos donde ya hay un punto antes o después
+  processed = transformBibleReferences(processed);
+  
   processed = processed.replace(/\.\s*\bpunto y seguido\b/gi, '.');
   processed = processed.replace(/\bpunto y seguido\b/gi, '. ');
   
-  // Reemplazar "punto y aparte" con un punto seguido de una pausa más larga
-  // Maneja casos donde ya hay un punto antes o después
   processed = processed.replace(/\.\s*\bpunto y aparte\b/gi, '.');
   processed = processed.replace(/\bpunto y aparte\b/gi, '.\n\n');
   
-  // Normalizar espacios múltiples y saltos de línea
-  processed = processed.replace(/\n{3,}/g, '\n\n'); // Máximo 2 saltos de línea consecutivos
-  processed = processed.replace(/[ \t]+/g, ' '); // Normalizar espacios
-  processed = processed.replace(/\.\s*\./g, '.'); // Eliminar puntos duplicados
+  processed = processed.replace(/\n{3,}/g, '\n\n');
+  processed = processed.replace(/[ \t]+/g, ' ');
+  processed = processed.replace(/\.\s*\./g, '.');
   
   return processed.trim();
 }
