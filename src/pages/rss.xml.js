@@ -10,6 +10,15 @@ export const prerender = true;
 export async function GET(context) {
   const posts = await getAllPosts();
   
+  console.log(`[RSS] Obtenidos ${posts.length} posts desde WordPress`);
+  if (posts.length > 0) {
+    console.log(`[RSS] Post más reciente: ${posts[0].dateISO} - ${extractTextFromHTML(posts[0].title.rendered)}`);
+    console.log(`[RSS] Fecha del post más reciente: ${posts[0].date}`);
+    if (posts.length > 1) {
+      console.log(`[RSS] Segundo post más reciente: ${posts[1].dateISO} - ${extractTextFromHTML(posts[1].title.rendered)}`);
+    }
+  }
+  
   // Obtener todos los posts con sus audios
   const items = await Promise.all(
     posts.map(async (post) => {
@@ -25,21 +34,36 @@ export async function GET(context) {
       const audioUrl = new URL(audioPath, context.site).toString();
       
       // Verificar si el archivo de audio existe y obtener su tamaño
+      // Buscar primero en public/audio (donde se generan durante build) y luego en dist/audio
       let audioLength = 0;
-      const audioFilePath = join(process.cwd(), 'public', audioPath);
-      const exists = await fileExists(audioFilePath);
+      let exists = false;
+      const publicAudioPath = join(process.cwd(), 'public', audioPath);
+      const distAudioPath = join(process.cwd(), 'dist', audioPath);
       
-      if (exists) {
+      // Intentar primero en public (donde se generan los audios durante el build)
+      if (await fileExists(publicAudioPath)) {
+        exists = true;
         try {
-          const stats = await stat(audioFilePath);
+          const stats = await stat(publicAudioPath);
           audioLength = stats.size;
         } catch (error) {
-          console.warn(`No se pudo obtener el tamaño del audio para ${post.dateISO}:`, error);
+          console.warn(`No se pudo obtener el tamaño del audio desde public para ${post.dateISO}:`, error);
+        }
+      } 
+      // Si no está en public, intentar en dist (build output, por si acaso)
+      else if (await fileExists(distAudioPath)) {
+        exists = true;
+        try {
+          const stats = await stat(distAudioPath);
+          audioLength = stats.size;
+        } catch (error) {
+          console.warn(`No se pudo obtener el tamaño del audio desde dist para ${post.dateISO}:`, error);
         }
       }
       
       // Solo incluir items que tengan audio disponible
       if (!exists || audioLength === 0) {
+        console.log(`[RSS] Post ${post.dateISO} excluido: audio no disponible`);
         return null;
       }
       
@@ -81,6 +105,11 @@ export async function GET(context) {
   // Filtrar items nulos y ordenar por fecha (más recientes primero)
   const validItems = items.filter(item => item !== null);
   validItems.sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime());
+  
+  console.log(`[RSS] Total de items válidos en RSS: ${validItems.length}`);
+  if (validItems.length > 0) {
+    console.log(`[RSS] Item más reciente en RSS: ${validItems[0].pubDate.toISOString()} - ${validItems[0].title}`);
+  }
   
   // URL del feed RSS
   const feedUrl = new URL('rss.xml', context.site).toString();
