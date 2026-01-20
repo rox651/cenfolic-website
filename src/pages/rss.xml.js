@@ -3,7 +3,7 @@ import { getAllPosts } from '../helpers/wordpress';
 import { extractTextFromHTML } from '../helpers/html';
 import { stat } from 'fs/promises';
 import { join } from 'path';
-import { fileExists } from '../helpers/tts';
+import { fileExists, generateAudioFile } from '../helpers/tts';
 
 export const prerender = true;
 
@@ -19,7 +19,23 @@ export async function GET(context) {
     }
   }
   
-  // Obtener todos los posts con sus audios
+  // PASO 1: Generar todos los audios PRIMERO (antes de crear el RSS)
+  console.log(`[RSS] Generando audios para todos los posts...`);
+  for (const post of posts) {
+    const title = extractTextFromHTML(post.title.rendered);
+    const contentText = extractTextFromHTML(post.content.rendered);
+    const fullText = `${title}\n\n${contentText}`;
+    const audioPath = `audio/${post.categorySlug}/${post.dateISO}.mp3`;
+    
+    try {
+      await generateAudioFile(fullText, audioPath);
+    } catch (error) {
+      console.error(`[RSS] Error generando audio para ${post.dateISO}:`, error instanceof Error ? error.message : error);
+    }
+  }
+  console.log(`[RSS] Generación de audios completada.`);
+  
+  // PASO 2: Ahora sí, crear los items del RSS con los audios ya disponibles
   const items = await Promise.all(
     posts.map(async (post) => {
       const title = extractTextFromHTML(post.title.rendered);
@@ -34,30 +50,17 @@ export async function GET(context) {
       const audioUrl = new URL(audioPath, context.site).toString();
       
       // Verificar si el archivo de audio existe y obtener su tamaño
-      // Buscar primero en public/audio (donde se generan durante build) y luego en dist/audio
       let audioLength = 0;
       let exists = false;
       const publicAudioPath = join(process.cwd(), 'public', audioPath);
-      const distAudioPath = join(process.cwd(), 'dist', audioPath);
       
-      // Intentar primero en public (donde se generan los audios durante el build)
       if (await fileExists(publicAudioPath)) {
         exists = true;
         try {
           const stats = await stat(publicAudioPath);
           audioLength = stats.size;
         } catch (error) {
-          console.warn(`No se pudo obtener el tamaño del audio desde public para ${post.dateISO}:`, error);
-        }
-      } 
-      // Si no está en public, intentar en dist (build output, por si acaso)
-      else if (await fileExists(distAudioPath)) {
-        exists = true;
-        try {
-          const stats = await stat(distAudioPath);
-          audioLength = stats.size;
-        } catch (error) {
-          console.warn(`No se pudo obtener el tamaño del audio desde dist para ${post.dateISO}:`, error);
+          console.warn(`[RSS] No se pudo obtener el tamaño del audio para ${post.dateISO}:`, error);
         }
       }
       
