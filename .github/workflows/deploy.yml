@@ -97,14 +97,42 @@ jobs:
             echo "⚠️  No se encontraron archivos de audio existentes"
           fi
 
+      - name: Download existing post images from Hostinger
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          echo "Descargando imágenes existentes de Hostinger..."
+          mkdir -p public/images
+          rsync -avz -e "ssh -p $SSH_PORT -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=2" \
+            "$SSH_USER@$SSH_HOST:/home/$SSH_USER/domains/cenfolic.com/public_html/images/" \
+            public/images/ 2>/dev/null || echo "No hay imágenes existentes o error al descargar"
+
       - name: Build project
         run: |
+          set -uo pipefail
           if [ -z "$OPEN_AI_KEY" ]; then
             echo "⚠️  WARNING: OPEN_AI_KEY no está configurada"
           else
             echo "✓ OPEN_AI_KEY está configurada (longitud: ${#OPEN_AI_KEY})"
           fi
-          bun run build
+
+          max_attempts=2
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "Build attempt $attempt/$max_attempts"
+            if bun run build; then
+              exit 0
+            fi
+
+            if [ "$attempt" -eq "$max_attempts" ]; then
+              echo "Build failed after $max_attempts attempts"
+              exit 1
+            fi
+
+            echo "Build failed; retrying in 15 seconds..."
+            sleep 15
+          done
         env:
           OPEN_AI_KEY: ${{ secrets.OPEN_AI_KEY }}
 
