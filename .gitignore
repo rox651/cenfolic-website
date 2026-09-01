@@ -31,3 +31,6 @@ public/audio/
 
 # generated post images
 public/images/
+
+# canonical post content hashes
+public/content-hashes/

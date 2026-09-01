@@ -9,41 +9,23 @@ import Header from "../../components/Header.astro";
 import Footer from "../../components/Footer.astro";
 import AudioPlayer from "../../components/AudioPlayer.astro";
 import { extractTextFromHTML } from "../../helpers/html";
-import { generateAudioFile } from "../../helpers/tts";
   
 export async function getStaticPaths() {
   const posts = await getAllPosts();
 
-  const paths = await Promise.all(
-    posts.map(async (post) => {
-      const title = extractTextFromHTML(post.title.rendered);
-      const contentText = extractTextFromHTML(post.content.rendered);
-      const fullText = `${title}\n\n${contentText}`;
-
-      let audioUrl: string | null = null;
-      try {
-        const audioPath = `audio/${post.categorySlug}/${post.dateISO}.mp3`;
-        console.log(`[Build] Iniciando generación de audio para ${post.dateISO}...`);
-        audioUrl = await generateAudioFile(fullText, audioPath);
-        console.log(`✓ Audio generado para ${post.dateISO}: ${audioUrl}`);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`✗ Error generando audio para ${post.dateISO}:`, errorMessage);
-        console.error('Stack:', error instanceof Error ? error.stack : 'N/A');
-      }
-
-      return {
-        params: { category: post.categorySlug, slug: post.dateISO },
-        props: { post, audioUrl },
-      };
-    })
-  );
-
-  return paths;
+  return posts.map((post) => ({
+    params: { category: post.categorySlug, slug: post.dateISO },
+    props: {
+      post,
+      audioUrl: `/audio/${post.categorySlug}/${post.dateISO}.mp3`,
+    },
+  }));
 }
 
-
-const { post, audioUrl } = Astro.props as { post: WPPostWithCategory; audioUrl: string | null };
+const { post, audioUrl } = Astro.props as {
+  post: WPPostWithCategory;
+  audioUrl: string;
+};
 
 
 

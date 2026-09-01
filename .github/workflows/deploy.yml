@@ -92,7 +92,7 @@ jobs:
             echo "✓ Archivos de audio descargados:"
             find public/audio -type f -name "*.mp3" | head -10
             echo "Total de archivos MP3 descargados: $(find public/audio -type f -name "*.mp3" | wc -l)"
-            echo "Total de archivos hash descargados: $(find public/audio -type f -name "*.hash" | wc -l)"
+            echo "Total de hashes heredados descargados: $(find public/audio -type f -name "*.hash" | wc -l)"
           else
             echo "⚠️  No se encontraron archivos de audio existentes"
           fi
@@ -105,9 +105,22 @@ jobs:
         run: |
           echo "Descargando imágenes existentes de Hostinger..."
           mkdir -p public/images
-          rsync -avz -e "ssh -p $SSH_PORT -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=2" \
+          rsync -avz --include='*/' --include='*.png' --exclude='*' \
+            -e "ssh -p $SSH_PORT -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=2" \
             "$SSH_USER@$SSH_HOST:/home/$SSH_USER/domains/cenfolic.com/public_html/images/" \
             public/images/ 2>/dev/null || echo "No hay imágenes existentes o error al descargar"
+
+      - name: Download existing content hashes from Hostinger
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          echo "Descargando hashes de contenido existentes de Hostinger..."
+          mkdir -p public/content-hashes
+          rsync -avz -e "ssh -p $SSH_PORT -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=2" \
+            "$SSH_USER@$SSH_HOST:/home/$SSH_USER/domains/cenfolic.com/public_html/content-hashes/" \
+            public/content-hashes/ 2>/dev/null || echo "No hay hashes de contenido existentes"
 
       - name: Build project
         run: |
@@ -147,6 +160,13 @@ jobs:
             echo "Total de archivos MP3 en dist: $(find dist/audio -type f -name "*.mp3" | wc -l)"
           else
             echo "⚠️  Directorio public/audio NO existe - no hay archivos de audio para copiar"
+          fi
+
+      - name: Copy content hashes to dist
+        run: |
+          if [ -d "public/content-hashes" ]; then
+            mkdir -p dist/content-hashes
+            cp -r public/content-hashes/. dist/content-hashes/
           fi
 
       - name: Upload dist folder to Hostinger

@@ -10,23 +10,11 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';
 import { createServer } from 'http';
-import { createHash } from 'crypto';
 import { parse } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, '..');
-const rendererHash = createHash('sha256')
-  .update(await readFile(__filename))
-  .digest('hex');
-
-function calculateImageHash(html) {
-  return createHash('sha256')
-    .update(html)
-    // Changing the renderer also invalidates every generated image.
-    .update(rendererHash)
-    .digest('hex');
-}
 
 // Simple HTTP server to serve files from dist directory
 function createLocalServer(distDir, port = 0) {
@@ -205,12 +193,11 @@ async function findBlogPosts(distDir) {
         if (/^\d{4}-\d{2}-\d{2}$/.test(entry.name)) {
           const htmlPath = join(fullPath, 'index.html');
           try {
-            const html = await readFile(htmlPath);
+            await readFile(htmlPath);
             posts.push({
               category: category || 'blog',
               dateISO: entry.name,
-              htmlPath,
-              imageHash: await calculateImageHash(html)
+              htmlPath
             });
           } catch (error) {
             // HTML file doesn't exist, skip
@@ -253,22 +240,26 @@ async function main() {
   
   console.log(`📝 Encontrados ${posts.length} posts`);
 
-  const postsToGenerate = [];
-  for (const post of posts) {
-    const imagePath = join(publicImagesDir, post.category, `${post.dateISO}.png`);
-    const hashPath = join(publicImagesDir, post.category, `${post.dateISO}.hash`);
-
-    try {
-      const savedHash = (await readFile(hashPath, 'utf8')).trim();
-      if (existsSync(imagePath) && savedHash === post.imageHash) {
-        continue;
-      }
-    } catch {
-      // A missing or unreadable hash means the image must be regenerated.
+  const changesPath = join(rootDir, '.astro', 'content-changes.json');
+  const contentChanges = JSON.parse(await readFile(changesPath, 'utf8'));
+  const postsByKey = new Map(
+    posts.map((post) => [`${post.category}/${post.dateISO}`, post]),
+  );
+  const postsToGenerate = contentChanges.map((change) => {
+    const key = `${change.category}/${change.dateISO}`;
+    const post = postsByKey.get(key);
+    if (!post) {
+      throw new Error(`No se encontró el HTML generado para ${key}`);
     }
 
-    postsToGenerate.push({ ...post, imagePath, hashPath });
-  }
+    return {
+      ...post,
+      contentHash: change.contentHash,
+      imagePath: join(publicImagesDir, change.category, `${change.dateISO}.png`),
+      distImagePath: join(distDir, 'images', change.category, `${change.dateISO}.png`),
+      sharedHashPath: join(rootDir, 'public', 'content-hashes', change.category, `${change.dateISO}.hash`),
+    };
+  });
 
   const unchangedCount = posts.length - postsToGenerate.length;
   console.log(`✓ ${unchangedCount} imágenes sin cambios`);
@@ -312,7 +303,10 @@ async function main() {
           console.log(`[${i + 1}/${postsToGenerate.length}] Generando imagen para ${post.category}/${post.dateISO}...`);
 
           await generateImageWithRetry(page, post, post.imagePath, port, distDir);
-          await writeFile(post.hashPath, post.imageHash, 'utf8');
+          await mkdir(dirname(post.distImagePath), { recursive: true });
+          await copyFile(post.imagePath, post.distImagePath);
+          await mkdir(dirname(post.sharedHashPath), { recursive: true });
+          await writeFile(post.sharedHashPath, post.contentHash, 'utf8');
 
           console.log(`   ✅ Imagen generada: ${post.category}/${post.dateISO}.png`);
         } catch (error) {
@@ -335,32 +329,6 @@ async function main() {
       `No se pudieron generar ${failures.length} de ${postsToGenerate.length} imágenes:\n${failures.join('\n')}`,
     );
   }
-  
-  // Copy images to dist directory
-  console.log('\n📁 Copiando imágenes a dist...');
-  const distImagesDir = join(distDir, 'images');
-  
-  await mkdir(distImagesDir, { recursive: true });
-
-  // Copy all images from public/images to dist/images
-  async function copyImages(src, dest) {
-    const entries = await readdir(src, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const srcPath = join(src, entry.name);
-      const destPath = join(dest, entry.name);
-
-      if (entry.isDirectory()) {
-        await mkdir(destPath, { recursive: true });
-        await copyImages(srcPath, destPath);
-      } else if (entry.name.endsWith('.png') || entry.name.endsWith('.hash')) {
-        await copyFile(srcPath, destPath);
-      }
-    }
-  }
-
-  await copyImages(publicImagesDir, distImagesDir);
-  console.log('✅ Imágenes copiadas a dist/images');
   
   console.log('\n🎉 ¡Generación de imágenes completada!');
 }
