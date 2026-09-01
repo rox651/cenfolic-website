@@ -10,11 +10,23 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';
 import { createServer } from 'http';
+import { createHash } from 'crypto';
 import { parse } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, '..');
+const rendererHash = createHash('sha256')
+  .update(await readFile(__filename))
+  .digest('hex');
+
+function calculateImageHash(html) {
+  return createHash('sha256')
+    .update(html)
+    // Changing the renderer also invalidates every generated image.
+    .update(rendererHash)
+    .digest('hex');
+}
 
 // Simple HTTP server to serve files from dist directory
 function createLocalServer(distDir, port = 0) {
@@ -95,25 +107,7 @@ async function getPuppeteer() {
   }
 }
 
-async function generateImageFromHtml(htmlFilePath, outputPath, width = 650, serverPort, distDir) {
-  const puppeteerModule = await getPuppeteer();
-  if (!puppeteerModule) {
-    return false;
-  }
-
-  const browser = await puppeteerModule.default.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
-
-  try {
-    const page = await browser.newPage();
-
-    await page.setViewport({
-      width: width,
-      height: 1080,
-      deviceScaleFactor: 2 // Higher DPI for better quality
-    });
+async function generateImageFromHtml(page, htmlFilePath, outputPath, serverPort, distDir) {
 
     // Calculate relative path from distDir to htmlFilePath
     const relativePath = htmlFilePath.replace(distDir, '').replace(/\\/g, '/');
@@ -141,9 +135,6 @@ async function generateImageFromHtml(htmlFilePath, outputPath, width = 650, serv
         })
       ]);
     });
-
-    // Additional wait to ensure styles are applied
-    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Add padding and background to the captured element
     await page.evaluate(() => {
@@ -179,11 +170,25 @@ async function generateImageFromHtml(htmlFilePath, outputPath, width = 650, serv
       path: outputPath,
       type: 'png'
     });
+}
 
-    return true;
-  } finally {
-    await browser.close();
+async function generateImageWithRetry(page, post, outputPath, serverPort, distDir) {
+  const maxAttempts = 2;
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await generateImageFromHtml(page, post.htmlPath, outputPath, serverPort, distDir);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxAttempts) {
+        console.warn(`   ⚠️  Intento ${attempt} falló; reintentando imagen...`);
+      }
+    }
   }
+
+  throw lastError;
 }
 
 async function findBlogPosts(distDir) {
@@ -200,11 +205,12 @@ async function findBlogPosts(distDir) {
         if (/^\d{4}-\d{2}-\d{2}$/.test(entry.name)) {
           const htmlPath = join(fullPath, 'index.html');
           try {
-            await readFile(htmlPath);
+            const html = await readFile(htmlPath);
             posts.push({
               category: category || 'blog',
               dateISO: entry.name,
-              htmlPath
+              htmlPath,
+              imageHash: await calculateImageHash(html)
             });
           } catch (error) {
             // HTML file doesn't exist, skip
@@ -218,7 +224,10 @@ async function findBlogPosts(distDir) {
   }
   
   await scanDirectory(distDir);
-  return posts;
+  return posts.sort((a, b) => {
+    const categoryComparison = a.category.localeCompare(b.category);
+    return categoryComparison || a.dateISO.localeCompare(b.dateISO);
+  });
 }
 
 async function main() {
@@ -242,76 +251,121 @@ async function main() {
     return;
   }
   
-  console.log(`📝 Encontrados ${posts.length} posts\n`);
-  
-  const puppeteerModule = await getPuppeteer();
-  if (!puppeteerModule) {
-    console.log('⚠️  Puppeteer no está disponible. Instala con: bun add -d puppeteer');
-    return;
-  }
-  
-  // Start local HTTP server to serve files
-  console.log('🌐 Iniciando servidor HTTP local...');
-  const { server, port } = await createLocalServer(distDir);
-  console.log(`✅ Servidor iniciado en puerto ${port}\n`);
-  
-  try {
-    // Generate images for each post
-    for (let i = 0; i < posts.length; i++) {
-      const post = posts[i];
-      const imagePath = join(publicImagesDir, post.category, `${post.dateISO}.png`);
-      const imageDir = join(publicImagesDir, post.category);
-      
-      try {
-        await mkdir(imageDir, { recursive: true });
-        
-        console.log(`[${i + 1}/${posts.length}] Generando imagen para ${post.category}/${post.dateISO}...`);
-        
-        await generateImageFromHtml(post.htmlPath, imagePath, 650, port, distDir);
-        
-        console.log(`   ✅ Imagen generada: ${post.category}/${post.dateISO}.png`);
-      } catch (error) {
-        console.error(`   ❌ Error generando imagen para ${post.dateISO}:`, error.message);
+  console.log(`📝 Encontrados ${posts.length} posts`);
+
+  const postsToGenerate = [];
+  for (const post of posts) {
+    const imagePath = join(publicImagesDir, post.category, `${post.dateISO}.png`);
+    const hashPath = join(publicImagesDir, post.category, `${post.dateISO}.hash`);
+
+    try {
+      const savedHash = (await readFile(hashPath, 'utf8')).trim();
+      if (existsSync(imagePath) && savedHash === post.imageHash) {
+        continue;
       }
+    } catch {
+      // A missing or unreadable hash means the image must be regenerated.
     }
-  } finally {
-    // Close server
-    server.close();
-    console.log('\n🌐 Servidor HTTP cerrado');
+
+    postsToGenerate.push({ ...post, imagePath, hashPath });
+  }
+
+  const unchangedCount = posts.length - postsToGenerate.length;
+  console.log(`✓ ${unchangedCount} imágenes sin cambios`);
+  console.log(`🖼️  ${postsToGenerate.length} imágenes por generar\n`);
+  
+  const failures = [];
+
+  if (postsToGenerate.length > 0) {
+    const puppeteerModule = await getPuppeteer();
+    if (!puppeteerModule) {
+      throw new Error('Puppeteer no está disponible. Instala con: bun add -d puppeteer');
+    }
+
+    // Start local HTTP server only when at least one image needs rendering.
+    console.log('🌐 Iniciando servidor HTTP local...');
+    const { server, port } = await createLocalServer(distDir);
+    console.log(`✅ Servidor iniciado en puerto ${port}\n`);
+
+    let browser;
+    let page;
+
+    try {
+      browser = await puppeteerModule.default.launch({
+        headless: 'new',
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+      page = await browser.newPage();
+      await page.setViewport({
+        width: 650,
+        height: 1080,
+        deviceScaleFactor: 2
+      });
+
+      for (let i = 0; i < postsToGenerate.length; i++) {
+        const post = postsToGenerate[i];
+        const imageDir = dirname(post.imagePath);
+
+        try {
+          await mkdir(imageDir, { recursive: true });
+
+          console.log(`[${i + 1}/${postsToGenerate.length}] Generando imagen para ${post.category}/${post.dateISO}...`);
+
+          await generateImageWithRetry(page, post, post.imagePath, port, distDir);
+          await writeFile(post.hashPath, post.imageHash, 'utf8');
+
+          console.log(`   ✅ Imagen generada: ${post.category}/${post.dateISO}.png`);
+        } catch (error) {
+          failures.push(`${post.category}/${post.dateISO}: ${error.message}`);
+          console.error(`   ❌ Error generando imagen para ${post.dateISO}:`, error.message);
+        }
+      }
+    } finally {
+      await page?.close();
+      await browser?.close();
+      await new Promise((resolve, reject) => {
+        server.close((error) => error ? reject(error) : resolve());
+      });
+      console.log('\n🌐 Servidor HTTP cerrado');
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(
+      `No se pudieron generar ${failures.length} de ${postsToGenerate.length} imágenes:\n${failures.join('\n')}`,
+    );
   }
   
   // Copy images to dist directory
   console.log('\n📁 Copiando imágenes a dist...');
   const distImagesDir = join(distDir, 'images');
   
-  try {
-    await mkdir(distImagesDir, { recursive: true });
-    
-    // Copy all images from public/images to dist/images
-    async function copyImages(src, dest) {
-      const entries = await readdir(src, { withFileTypes: true });
-      
-      for (const entry of entries) {
-        const srcPath = join(src, entry.name);
-        const destPath = join(dest, entry.name);
-        
-        if (entry.isDirectory()) {
-          await mkdir(destPath, { recursive: true });
-          await copyImages(srcPath, destPath);
-        } else if (entry.name.endsWith('.png')) {
-          await copyFile(srcPath, destPath);
-        }
+  await mkdir(distImagesDir, { recursive: true });
+
+  // Copy all images from public/images to dist/images
+  async function copyImages(src, dest) {
+    const entries = await readdir(src, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const srcPath = join(src, entry.name);
+      const destPath = join(dest, entry.name);
+
+      if (entry.isDirectory()) {
+        await mkdir(destPath, { recursive: true });
+        await copyImages(srcPath, destPath);
+      } else if (entry.name.endsWith('.png') || entry.name.endsWith('.hash')) {
+        await copyFile(srcPath, destPath);
       }
     }
-    
-    await copyImages(publicImagesDir, distImagesDir);
-    console.log('✅ Imágenes copiadas a dist/images');
-  } catch (error) {
-    console.warn('⚠️  Error copiando imágenes a dist:', error.message);
   }
+
+  await copyImages(publicImagesDir, distImagesDir);
+  console.log('✅ Imágenes copiadas a dist/images');
   
   console.log('\n🎉 ¡Generación de imágenes completada!');
 }
 
-main().catch(console.error);
-
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

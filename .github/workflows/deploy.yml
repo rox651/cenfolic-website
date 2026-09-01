@@ -11,38 +11,81 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Install Chrome for Puppeteer
         run: bun x puppeteer browsers install chrome
 
       - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
+        uses: webfactory/ssh-agent@v0.10.0
         with:
           ssh-private-key: ${{ secrets.SSH_KEY }}
 
-      - name: Add known_hosts
+      - name: Debug SSH connection
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
         run: |
+          set -euo pipefail
+          if [ -z "$SSH_HOST" ]; then
+            echo "SSH_HOST secret is empty"
+            exit 1
+          fi
+          if [ -z "$SSH_PORT" ]; then
+            echo "SSH_PORT secret is empty"
+            exit 1
+          fi
+          echo "Checking SSH connectivity..."
+          nc -vz -w 20 "$SSH_HOST" "$SSH_PORT"
+
+      - name: Add known_hosts
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
-          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+          ssh-keyscan -T 30 -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Verify SSH connection
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          set -euo pipefail
+          ssh -p "$SSH_PORT" \
+            -o BatchMode=yes \
+            -o ConnectTimeout=20 \
+            -o ServerAliveInterval=15 \
+            -o ServerAliveCountMax=2 \
+            "$SSH_USER@$SSH_HOST" "pwd"
 
       - name: Download existing audio files from Hostinger
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
         run: |
           echo "Descargando archivos de audio existentes de Hostinger..."
           mkdir -p public/audio
-          rsync -avz -e "ssh -p ${{ secrets.SSH_PORT }}" \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/domains/cenfolic.com/public_html/audio/ \
+          rsync -avz -e "ssh -p $SSH_PORT -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=2" \
+            "$SSH_USER@$SSH_HOST:/home/$SSH_USER/domains/cenfolic.com/public_html/audio/" \
             public/audio/ 2>/dev/null || echo "No hay archivos de audio existentes o error al descargar"
           
           if [ -d "public/audio" ] && [ "$(ls -A public/audio 2>/dev/null)" ]; then
@@ -54,14 +97,42 @@ jobs:
             echo "⚠️  No se encontraron archivos de audio existentes"
           fi
 
+      - name: Download existing post images from Hostinger
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          echo "Descargando imágenes existentes de Hostinger..."
+          mkdir -p public/images
+          rsync -avz -e "ssh -p $SSH_PORT -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=2" \
+            "$SSH_USER@$SSH_HOST:/home/$SSH_USER/domains/cenfolic.com/public_html/images/" \
+            public/images/ 2>/dev/null || echo "No hay imágenes existentes o error al descargar"
+
       - name: Build project
         run: |
+          set -uo pipefail
           if [ -z "$OPEN_AI_KEY" ]; then
             echo "⚠️  WARNING: OPEN_AI_KEY no está configurada"
           else
             echo "✓ OPEN_AI_KEY está configurada (longitud: ${#OPEN_AI_KEY})"
           fi
-          bun run build
+
+          max_attempts=2
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "Build attempt $attempt/$max_attempts"
+            if bun run build; then
+              exit 0
+            fi
+
+            if [ "$attempt" -eq "$max_attempts" ]; then
+              echo "Build failed after $max_attempts attempts"
+              exit 1
+            fi
+
+            echo "Build failed; retrying in 15 seconds..."
+            sleep 15
+          done
         env:
           OPEN_AI_KEY: ${{ secrets.OPEN_AI_KEY }}
 
@@ -79,7 +150,11 @@ jobs:
           fi
 
       - name: Upload dist folder to Hostinger
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
         run: |
-          rsync -avz -e "ssh -p ${{ secrets.SSH_PORT }}" dist/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/domains/cenfolic.com/public_html/
-
-
+          rsync -avz -e "ssh -p $SSH_PORT -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=2" \
+            dist/ \
+            "$SSH_USER@$SSH_HOST:/home/$SSH_USER/domains/cenfolic.com/public_html/"
