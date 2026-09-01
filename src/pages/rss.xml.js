@@ -1,9 +1,10 @@
 import rss from '@astrojs/rss';
 import { getAllPosts } from '../helpers/wordpress';
 import { extractTextFromHTML } from '../helpers/html';
-import { stat } from 'fs/promises';
+import { mkdir, stat, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { fileExists, generateAudioFile } from '../helpers/tts';
+import { calculatePostContentHash } from '../helpers/contentHash';
 
 export const prerender = true;
 
@@ -21,19 +22,63 @@ export async function GET(context) {
   
   // PASO 1: Generar todos los audios PRIMERO (antes de crear el RSS)
   console.log(`[RSS] Generando audios para todos los posts...`);
+  const audioStats = { unchanged: 0, migrated: 0, generated: 0, failed: 0 };
+  const contentChanges = [];
   for (const post of posts) {
     const title = extractTextFromHTML(post.title.rendered);
     const contentText = extractTextFromHTML(post.content.rendered);
     const fullText = `${title}\n\n${contentText}`;
     const audioPath = `audio/${post.categorySlug}/${post.dateISO}.mp3`;
+    const contentHashPath = `content-hashes/${post.categorySlug}/${post.dateISO}.hash`;
+    const contentHash = calculatePostContentHash(
+      post.title.rendered,
+      post.content.rendered,
+    );
     
     try {
-      await generateAudioFile(fullText, audioPath);
+      const result = await generateAudioFile(
+        fullText,
+        audioPath,
+        contentHash,
+        contentHashPath,
+      );
+      audioStats[result.status]++;
+
+      const imagePath = join(
+        process.cwd(),
+        'public',
+        'images',
+        post.categorySlug,
+        `${post.dateISO}.png`,
+      );
+      if (result.status === 'generated' || !(await fileExists(imagePath))) {
+        contentChanges.push({
+          category: post.categorySlug,
+          dateISO: post.dateISO,
+          contentHash,
+        });
+      }
     } catch (error) {
+      audioStats.failed++;
       console.error(`[RSS] Error generando audio para ${post.dateISO}:`, error instanceof Error ? error.message : error);
     }
   }
-  console.log(`[RSS] Generación de audios completada.`);
+  console.log(
+    `[RSS] Audios: ${audioStats.generated} generados, ${audioStats.migrated} hashes migrados, ` +
+    `${audioStats.unchanged} sin cambios, ${audioStats.failed} errores.`,
+  );
+  const changesDirectory = join(process.cwd(), '.astro');
+  await mkdir(changesDirectory, { recursive: true });
+  await writeFile(
+    join(changesDirectory, 'content-changes.json'),
+    JSON.stringify(contentChanges, null, 2),
+    'utf8',
+  );
+  console.log(`[RSS] Publicaciones con artefactos pendientes: ${contentChanges.length}.`);
+
+  if (audioStats.failed > 0) {
+    throw new Error(`No se pudieron procesar ${audioStats.failed} audios`);
+  }
   
   // PASO 2: Ahora sí, crear los items del RSS con los audios ya disponibles
   const items = await Promise.all(
@@ -154,4 +199,3 @@ export async function GET(context) {
     },
   });
 }
-

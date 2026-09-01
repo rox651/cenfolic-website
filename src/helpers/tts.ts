@@ -1,10 +1,17 @@
 import { writeFile, mkdir, readFile, access } from 'fs/promises';
-import { join } from 'path';
+import { dirname, join } from 'path';
 import { createHash } from 'crypto';
 import { OpenAI } from 'openai';
 
-function calculateContentHash(text: string): string {
+function calculateLegacyAudioHash(text: string): string {
   return createHash('sha256').update(text, 'utf8').digest('hex');
+}
+
+export type AudioGenerationStatus = 'unchanged' | 'migrated' | 'generated';
+
+export interface AudioFileResult {
+  url: string;
+  status: AudioGenerationStatus;
 }
 
 function transformBibleReferences(text: string): string {
@@ -66,25 +73,22 @@ export async function fileExists(filePath: string): Promise<boolean> {
 
 export async function generateAudioFile(
   text: string,
-  outputPath: string
-): Promise<string> {
-  const openAiKey = import.meta.env.OPEN_AI_KEY;
-
-  if (!openAiKey) {
-    console.error('OPEN_AI_KEY no encontrada en import.meta.env');
-    console.error('Variables de entorno disponibles:', Object.keys(import.meta.env).filter(k => k.includes('OPEN')));
-    throw new Error('OPEN_AI_KEY no está configurada');
-  }
-
+  outputPath: string,
+  contentHash: string,
+  contentHashPath: string,
+): Promise<AudioFileResult> {
   const processedText = preprocessTextForTTS(text);
-  const contentHash = calculateContentHash(processedText);
-  const hashPath = outputPath.replace('.mp3', '.hash');
+  const legacyAudioHash = calculateLegacyAudioHash(processedText);
+  const expectedHash = contentHash;
+  const legacyHashPath = outputPath.replace('.mp3', '.hash');
   
   const dir = join(process.cwd(), 'public', outputPath.split('/').slice(0, -1).join('/'));
   await mkdir(dir, { recursive: true });
 
   const fullPath = join(process.cwd(), 'public', outputPath);
-  const hashFilePath = join(process.cwd(), 'public', hashPath);
+  const legacyHashFilePath = join(process.cwd(), 'public', legacyHashPath);
+  const hashFilePath = join(process.cwd(), 'public', contentHashPath);
+  await mkdir(dirname(hashFilePath), { recursive: true });
 
   let shouldGenerate = true;
   const audioExists = await fileExists(fullPath);
@@ -94,8 +98,7 @@ export async function generateAudioFile(
     try {
       const savedHash = (await readFile(hashFilePath, 'utf-8')).trim();
       
-      if (savedHash === contentHash) {
-        console.log(`✓ Audio ya existe y el contenido no ha cambiado: ${outputPath}`);
+      if (savedHash === expectedHash) {
         shouldGenerate = false;
       } else {
         console.log(`🔄 Contenido ha cambiado, regenerando audio: ${outputPath}`);
@@ -105,13 +108,27 @@ export async function generateAudioFile(
       console.log(`⚠️  Error leyendo hash, regenerando audio: ${outputPath}`);
       shouldGenerate = true;
     }
+  } else if (audioExists && await fileExists(legacyHashFilePath)) {
+    const legacySavedHash = (await readFile(legacyHashFilePath, 'utf8')).trim();
+    if (legacySavedHash === legacyAudioHash) {
+      // Adopt the canonical HTML hash without regenerating the existing MP3.
+      await writeFile(hashFilePath, expectedHash, 'utf8');
+      return { url: `/${outputPath}`, status: 'migrated' };
+    }
   } else {
     console.log(`📝 Generando nuevo audio: ${outputPath} (texto length: ${text.length})`);
     shouldGenerate = true;
   }
 
   if (!shouldGenerate) {
-    return `/${outputPath}`;
+    return { url: `/${outputPath}`, status: 'unchanged' };
+  }
+
+  const openAiKey = import.meta.env.OPEN_AI_KEY;
+
+  if (!openAiKey) {
+    console.error('OPEN_AI_KEY no encontrada en import.meta.env');
+    throw new Error('OPEN_AI_KEY no está configurada');
   }
 
   const client = new OpenAI({
@@ -133,13 +150,11 @@ Bible references: when a book starts with a number, pronounce it as an ordinal i
     const buffer = Buffer.from(await mp3.arrayBuffer());
 
     await writeFile(fullPath, buffer);
-    await writeFile(hashFilePath, contentHash, 'utf-8');
-
-    return `/${outputPath}`;
+    // The shared content hash is persisted after the PNG is also generated.
+    return { url: `/${outputPath}`, status: 'generated' };
   } catch (error) {
     console.error('Error generando audio con OpenAI SDK:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     throw new Error(`Error al generar audio: ${errorMessage}`);
   }
 }
-
