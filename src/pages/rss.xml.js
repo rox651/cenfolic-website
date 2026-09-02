@@ -3,7 +3,7 @@ import { getAllPosts } from '../helpers/wordpress';
 import { extractTextFromHTML } from '../helpers/html';
 import { mkdir, stat, writeFile } from 'fs/promises';
 import { join } from 'path';
-import { fileExists, generateAudioFile } from '../helpers/tts';
+import { fileExists, generateAudioFile, planAudioFile } from '../helpers/tts';
 import { calculatePostContentHash } from '../helpers/contentHash';
 
 export const prerender = true;
@@ -20,10 +20,13 @@ export async function GET(context) {
     }
   }
   
-  // PASO 1: Generar todos los audios PRIMERO (antes de crear el RSS)
-  console.log(`[RSS] Generando audios para todos los posts...`);
+  // PASO 1: Clasificar todos los posts sin llamar a OpenAI. Esto permite
+  // detener el build antes de gastar tokens si los hashes fallan en masa.
+  console.log(`[RSS] Verificando cambios de contenido para todos los posts...`);
   const audioStats = { unchanged: 0, migrated: 0, generated: 0, failed: 0 };
   const contentChanges = [];
+  const plannedPosts = [];
+
   for (const post of posts) {
     const title = extractTextFromHTML(post.title.rendered);
     const contentText = extractTextFromHTML(post.content.rendered);
@@ -34,24 +37,60 @@ export async function GET(context) {
       post.title.rendered,
       post.content.rendered,
     );
+    const imagePath = join(
+      process.cwd(),
+      'public',
+      'images',
+      post.categorySlug,
+      `${post.dateISO}.png`,
+    );
     
+    const audioPlan = await planAudioFile(
+      fullText,
+      audioPath,
+      contentHash,
+      contentHashPath,
+    );
+
+    plannedPosts.push({
+      post,
+      contentHash,
+      audioPlan,
+      imageMissing: !(await fileExists(imagePath)),
+    });
+  }
+
+  const configuredLimit = Number(process.env.MAX_MEDIA_CHANGES ?? '3');
+  const maxMediaChanges = Number.isInteger(configuredLimit) && configuredLimit > 0
+    ? configuredLimit
+    : 3;
+  const pendingCount = plannedPosts.filter(
+    ({ audioPlan }) => audioPlan.status === 'pending',
+  ).length;
+  const pendingImageCount = plannedPosts.filter(
+    ({ audioPlan, imageMissing }) => audioPlan.status === 'pending' || imageMissing,
+  ).length;
+
+  console.log(
+    `[RSS] Preflight: ${pendingCount} publicaciones requieren audio nuevo ` +
+    `y ${pendingImageCount} requieren imagen (límite: ${maxMediaChanges}).`,
+  );
+
+  if (pendingCount > maxMediaChanges || pendingImageCount > maxMediaChanges) {
+    throw new Error(
+      `[RSS] Protección de costo activada: ${pendingCount} audios y ${pendingImageCount} imágenes ` +
+      `aparecen pendientes, ` +
+      `pero el máximo permitido es ${maxMediaChanges}. No se llamó a OpenAI.`,
+    );
+  }
+
+  // PASO 2: Generar únicamente los audios aprobados por el preflight.
+  for (const { post, contentHash, audioPlan, imageMissing } of plannedPosts) {
     try {
-      const result = await generateAudioFile(
-        fullText,
-        audioPath,
-        contentHash,
-        contentHashPath,
-      );
+      const result = await generateAudioFile(audioPlan);
       audioStats[result.status]++;
 
-      const imagePath = join(
-        process.cwd(),
-        'public',
-        'images',
-        post.categorySlug,
-        `${post.dateISO}.png`,
-      );
-      if (result.status === 'generated' || !(await fileExists(imagePath))) {
+      if (result.status === 'generated' || imageMissing) {
         contentChanges.push({
           category: post.categorySlug,
           dateISO: post.dateISO,
@@ -80,7 +119,7 @@ export async function GET(context) {
     throw new Error(`No se pudieron procesar ${audioStats.failed} audios`);
   }
   
-  // PASO 2: Ahora sí, crear los items del RSS con los audios ya disponibles
+  // PASO 3: Ahora sí, crear los items del RSS con los audios ya disponibles
   const items = await Promise.all(
     posts.map(async (post) => {
       const title = extractTextFromHTML(post.title.rendered);
