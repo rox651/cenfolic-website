@@ -14,6 +14,13 @@ export interface AudioFileResult {
   status: AudioGenerationStatus;
 }
 
+export interface AudioFilePlan {
+  status: AudioGenerationStatus | 'pending';
+  outputPath: string;
+  processedText: string;
+  fullPath: string;
+}
+
 function transformBibleReferences(text: string): string {
   let processed = text;
   
@@ -71,15 +78,14 @@ export async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
-export async function generateAudioFile(
+export async function planAudioFile(
   text: string,
   outputPath: string,
   contentHash: string,
   contentHashPath: string,
-): Promise<AudioFileResult> {
+): Promise<AudioFilePlan> {
   const processedText = preprocessTextForTTS(text);
   const legacyAudioHash = calculateLegacyAudioHash(processedText);
-  const expectedHash = contentHash;
   const legacyHashPath = outputPath.replace('.mp3', '.hash');
   
   const dir = join(process.cwd(), 'public', outputPath.split('/').slice(0, -1).join('/'));
@@ -90,38 +96,53 @@ export async function generateAudioFile(
   const hashFilePath = join(process.cwd(), 'public', contentHashPath);
   await mkdir(dirname(hashFilePath), { recursive: true });
 
-  let shouldGenerate = true;
   const audioExists = await fileExists(fullPath);
   const hashExists = await fileExists(hashFilePath);
+  const legacyHashExists = await fileExists(legacyHashFilePath);
+
+  const createPlan = (status: AudioFilePlan['status']): AudioFilePlan => ({
+    status,
+    outputPath,
+    processedText,
+    fullPath,
+  });
+
+  async function migrateLegacyHash(): Promise<AudioFilePlan | null> {
+    if (!audioExists || !legacyHashExists) return null;
+
+    const legacySavedHash = (await readFile(legacyHashFilePath, 'utf8')).trim();
+    if (legacySavedHash !== legacyAudioHash) return null;
+
+    await writeFile(hashFilePath, contentHash, 'utf8');
+    return createPlan('migrated');
+  }
 
   if (audioExists && hashExists) {
     try {
       const savedHash = (await readFile(hashFilePath, 'utf-8')).trim();
       
-      if (savedHash === expectedHash) {
-        shouldGenerate = false;
-      } else {
-        console.log(`🔄 Contenido ha cambiado, regenerando audio: ${outputPath}`);
-        shouldGenerate = true;
-      }
+      if (savedHash === contentHash) return createPlan('unchanged');
+
+      // Migrate hashes created before HTML normalization. The legacy audio
+      // hash confirms that the underlying post text has not changed.
+      const migrated = await migrateLegacyHash();
+      if (migrated) return migrated;
     } catch (error) {
-      console.log(`⚠️  Error leyendo hash, regenerando audio: ${outputPath}`);
-      shouldGenerate = true;
+      console.warn(`⚠️  Error leyendo hash para ${outputPath}; se marcará como pendiente`);
     }
-  } else if (audioExists && await fileExists(legacyHashFilePath)) {
-    const legacySavedHash = (await readFile(legacyHashFilePath, 'utf8')).trim();
-    if (legacySavedHash === legacyAudioHash) {
-      // Adopt the canonical HTML hash without regenerating the existing MP3.
-      await writeFile(hashFilePath, expectedHash, 'utf8');
-      return { url: `/${outputPath}`, status: 'migrated' };
-    }
-  } else {
-    console.log(`📝 Generando nuevo audio: ${outputPath} (texto length: ${text.length})`);
-    shouldGenerate = true;
+  } else if (audioExists && legacyHashExists) {
+    const migrated = await migrateLegacyHash();
+    if (migrated) return migrated;
   }
 
-  if (!shouldGenerate) {
-    return { url: `/${outputPath}`, status: 'unchanged' };
+  return createPlan('pending');
+}
+
+export async function generateAudioFile(
+  plan: AudioFilePlan,
+): Promise<AudioFileResult> {
+  if (plan.status !== 'pending') {
+    return { url: `/${plan.outputPath}`, status: plan.status };
   }
 
   const openAiKey = import.meta.env.OPEN_AI_KEY;
@@ -142,16 +163,16 @@ Bible references: when a book starts with a number, pronounce it as an ordinal i
     const mp3 = await client.audio.speech.create({
       model: 'gpt-4o-mini-tts-2025-03-20',
       voice: 'alloy',
-      input: processedText,
+      input: plan.processedText,
       response_format: 'mp3',
       instructions: voiceInstructions,
     });
 
     const buffer = Buffer.from(await mp3.arrayBuffer());
 
-    await writeFile(fullPath, buffer);
+    await writeFile(plan.fullPath, buffer);
     // The shared content hash is persisted after the PNG is also generated.
-    return { url: `/${outputPath}`, status: 'generated' };
+    return { url: `/${plan.outputPath}`, status: 'generated' };
   } catch (error) {
     console.error('Error generando audio con OpenAI SDK:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);

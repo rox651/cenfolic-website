@@ -1,5 +1,9 @@
 name: Deploy to Hostinger
 
+concurrency:
+  group: deploy-hostinger-production
+  cancel-in-progress: true
+
 on:
   push:
     branches:
@@ -11,6 +15,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
 
@@ -124,30 +129,16 @@ jobs:
 
       - name: Build project
         run: |
-          set -uo pipefail
+          set -euo pipefail
           if [ -z "$OPEN_AI_KEY" ]; then
             echo "⚠️  WARNING: OPEN_AI_KEY no está configurada"
           else
             echo "✓ OPEN_AI_KEY está configurada (longitud: ${#OPEN_AI_KEY})"
           fi
-
-          max_attempts=2
-          for attempt in $(seq 1 "$max_attempts"); do
-            echo "Build attempt $attempt/$max_attempts"
-            if bun run build; then
-              exit 0
-            fi
-
-            if [ "$attempt" -eq "$max_attempts" ]; then
-              echo "Build failed after $max_attempts attempts"
-              exit 1
-            fi
-
-            echo "Build failed; retrying in 15 seconds..."
-            sleep 15
-          done
+          bun run build
         env:
           OPEN_AI_KEY: ${{ secrets.OPEN_AI_KEY }}
+          MAX_MEDIA_CHANGES: "3"
 
       - name: Copy audio files to dist
         run: |
